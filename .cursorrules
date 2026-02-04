@@ -1,0 +1,50 @@
+# Cursor IDE Rules for TanStack Start SaaS Starter
+
+## Shadcn UI Components
+
+Use the latest version of Shadcn to install new components:
+
+```bash
+npx shadcn@latest add <component>
+```
+
+Available components: https://ui.shadcn.com/docs/components
+
+## Project Conventions
+
+### File Naming
+- React components: PascalCase (e.g., `HeroSection.tsx`)
+- Hooks: camelCase with `use` prefix (e.g., `useMobile.ts`)
+- Server functions: camelCase with `.fn.ts` suffix (e.g., `auth.fn.ts`)
+- Services: camelCase with `.service.ts` suffix (e.g., `stripe.service.ts`)
+
+### Import Aliases
+- Use `@/` for imports from `src/` directory
+- Example: `import { Button } from '@/components/ui/button'`
+
+### Server Functions
+- Always use middleware for protected endpoints
+- Use Zod schemas for input validation
+- Return typed responses
+
+### Styling
+- Use Tailwind CSS utility classes
+- Use `cn()` utility for conditional classes
+- Follow the existing color scheme (CSS variables in styles.css)
+
+## Common Tasks
+
+### Add a new protected route
+1. Create file in `src/routes/_app/`
+2. Use `createFileRoute('/_app/routename')`
+3. Access user via `Route.useRouteContext()`
+
+### Add a new server function
+1. Create in `src/server/` with `.fn.ts` extension
+2. Chain `authMiddleware` if protected
+3. Use `inputValidator` with Zod schema
+
+### Add a new external service
+1. Create in `src/server/services/` with `.service.ts` extension
+2. Add mock mode with `MOCK_SERVICE` env var
+3. Export from `src/server/services/index.ts`

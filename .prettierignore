@@ -1,0 +1,22 @@
+# Lock files
+package-lock.json
+pnpm-lock.yaml
+yarn.lock
+
+# Dependencies
+node_modules/
+
+# Build outputs
+.output/
+dist/
+build/
+.tanstack/
+
+# Generated files
+src/generated/
+src/routeTree.gen.ts
+
+# Database
+*.db
+*.db-journal
+prisma/data/
