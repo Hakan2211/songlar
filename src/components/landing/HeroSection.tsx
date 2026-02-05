@@ -1,6 +1,6 @@
 import { Link } from '@tanstack/react-router'
 import { motion } from 'framer-motion'
-import { ArrowRight, Music, Sparkles, Headphones } from 'lucide-react'
+import { ArrowRight, Headphones, Music, Sparkles } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 
 export function HeroSection() {

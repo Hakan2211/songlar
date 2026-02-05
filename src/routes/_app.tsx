@@ -3,8 +3,8 @@ import { getSessionFn } from '../server/auth.fn'
 import { useSession } from '../lib/auth-client'
 import { AppSidebar } from '../components/app-sidebar'
 import {
-  SidebarProvider,
   SidebarInset,
+  SidebarProvider,
   SidebarTrigger,
 } from '../components/ui/sidebar'
 import { Separator } from '../components/ui/separator'

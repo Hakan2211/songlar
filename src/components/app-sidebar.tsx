@@ -1,13 +1,5 @@
 import { Link, useLocation, useNavigate } from '@tanstack/react-router'
-import {
-  Music,
-  Library,
-  Key,
-  User,
-  Shield,
-  LogOut,
-  ChevronsUpDown,
-} from 'lucide-react'
+import { ChevronsUpDown, Key, LogOut, Music, Shield, User } from 'lucide-react'
 import { Logo } from '@/components/common'
 import { signOut } from '@/lib/auth-client'
 import {
@@ -35,14 +27,9 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 // Navigation items
 const mainNavItems = [
   {
-    title: 'Music Generation',
+    title: 'Music Studio',
     url: '/music',
     icon: Music,
-  },
-  {
-    title: 'My Tracks',
-    url: '/library',
-    icon: Library,
   },
 ]
 
@@ -88,7 +75,7 @@ export function AppSidebar({ user }: AppSidebarProps) {
         <SidebarMenu>
           <SidebarMenuItem>
             <SidebarMenuButton size="lg" asChild>
-              <Link to="/">
+              <Link to="/music">
                 <Logo size={32} />
                 <div className="flex flex-col gap-0.5 leading-none">
                   <span className="font-semibold">AI Music Studio</span>

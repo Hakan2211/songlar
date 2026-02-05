@@ -1,8 +1,6 @@
-'use client'
-
-import { useRef, useEffect, useState, useCallback } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import WaveSurfer from 'wavesurfer.js'
-import { Play, Pause, Loader2 } from 'lucide-react'
+import { Loader2, Pause, Play } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 
@@ -46,7 +44,30 @@ export function WaveformPlayer({
   const [currentTime, setCurrentTime] = useState(0)
   const [duration, setDuration] = useState(0)
   const [error, setError] = useState<string | null>(null)
-  const [hasLoaded, setHasLoaded] = useState(false)
+
+  // Store callback props in refs so they don't trigger effect re-runs
+  const onReadyRef = useRef(onReady)
+  const onPlayRef = useRef(onPlay)
+  const onPauseRef = useRef(onPause)
+  const onFinishRef = useRef(onFinish)
+  const onTimeUpdateRef = useRef(onTimeUpdate)
+
+  // Keep refs in sync with latest props
+  useEffect(() => {
+    onReadyRef.current = onReady
+  }, [onReady])
+  useEffect(() => {
+    onPlayRef.current = onPlay
+  }, [onPlay])
+  useEffect(() => {
+    onPauseRef.current = onPause
+  }, [onPause])
+  useEffect(() => {
+    onFinishRef.current = onFinish
+  }, [onFinish])
+  useEffect(() => {
+    onTimeUpdateRef.current = onTimeUpdate
+  }, [onTimeUpdate])
 
   // Format time as mm:ss
   const formatTime = (seconds: number): string => {
@@ -56,18 +77,39 @@ export function WaveformPlayer({
     return `${mins}:${secs.toString().padStart(2, '0')}`
   }
 
-  // Initialize WaveSurfer when component becomes visible
+  // Initialize WaveSurfer when component becomes visible or src changes
   useEffect(() => {
-    if (!isVisible || !containerRef.current || hasLoaded) return
+    if (!isVisible || !containerRef.current || !src) return
 
-    // Use CSS variable colors if not provided
-    const computedStyle = getComputedStyle(document.documentElement)
+    // Clean up previous instance if src changed
+    if (wavesurferRef.current) {
+      try {
+        wavesurferRef.current.destroy()
+      } catch {
+        // Ignore AbortError from in-flight fetch during cleanup
+      }
+      wavesurferRef.current = null
+    }
+
+    // Reset state for new load
+    setIsLoading(true)
+    setError(null)
+    setIsPlaying(false)
+    setCurrentTime(0)
+    setDuration(0)
+
+    // Detect dark mode for color adaptation
+    const isDark = document.documentElement.classList.contains('dark')
+
+    // Professional solid colors with strong played/unplayed contrast:
+    // Dark mode: bright gold played, subtle white unplayed
+    // Light mode: vivid blue played, subtle dark unplayed
     const defaultWaveColor =
-      waveColor || computedStyle.getPropertyValue('--muted-foreground').trim()
-        ? 'hsl(var(--muted-foreground) / 0.4)'
-        : '#94a3b8'
-    const defaultProgressColor = progressColor || 'hsl(var(--primary))'
-    const defaultCursorColor = cursorColor || 'hsl(var(--primary))'
+      waveColor ||
+      (isDark ? 'rgba(255, 255, 255, 0.15)' : 'rgba(0, 0, 0, 0.18)')
+    const defaultProgressColor =
+      progressColor || (isDark ? '#E2B658' : '#2563EB')
+    const defaultCursorColor = cursorColor || (isDark ? '#E2B658' : '#2563EB')
 
     const ws = WaveSurfer.create({
       container: containerRef.current,
@@ -76,9 +118,9 @@ export function WaveformPlayer({
       progressColor: defaultProgressColor,
       cursorColor: defaultCursorColor,
       cursorWidth: 2,
-      barWidth: 2,
-      barGap: 1,
-      barRadius: 2,
+      barWidth: 3,
+      barGap: 2,
+      barRadius: 3,
       normalize: true,
       hideScrollbar: true,
       fillParent: true,
@@ -88,89 +130,73 @@ export function WaveformPlayer({
 
     wavesurferRef.current = ws
 
-    // Event handlers
+    // Event handlers - use refs to avoid stale closures
     ws.on('ready', () => {
       setIsLoading(false)
-      setHasLoaded(true)
       const dur = ws.getDuration()
       setDuration(dur)
-      onReady?.(dur)
+      onReadyRef.current?.(dur)
     })
 
     ws.on('play', () => {
       setIsPlaying(true)
-      onPlay?.()
+      onPlayRef.current?.()
     })
 
     ws.on('pause', () => {
       setIsPlaying(false)
-      onPause?.()
+      onPauseRef.current?.()
     })
 
     ws.on('finish', () => {
       setIsPlaying(false)
-      onFinish?.()
+      onFinishRef.current?.()
     })
 
     ws.on('timeupdate', (time) => {
       setCurrentTime(time)
-      onTimeUpdate?.(time)
+      onTimeUpdateRef.current?.(time)
     })
 
-    ws.on('error', (err) => {
+    ws.on('error', (err: Error) => {
+      // Ignore AbortErrors - these happen during normal React cleanup
+      // when ws.destroy() is called while ws.load() is still in-flight
+      if (err.name === 'AbortError') {
+        return
+      }
+      if (err.message?.toLowerCase().includes('abort')) {
+        return
+      }
       console.error('[WaveformPlayer] Error:', err)
       setError('Failed to load audio')
       setIsLoading(false)
     })
 
-    // Load audio
-    ws.load(src)
+    // Load audio -- catch the promise so that AbortError from destroy()
+    // aborting an in-flight fetch doesn't surface as unhandled rejection
+    ws.load(src).catch((err: Error) => {
+      if (err.name === 'AbortError') return
+      console.error('[WaveformPlayer] Load error:', err)
+    })
 
     return () => {
-      ws.destroy()
+      try {
+        ws.destroy()
+      } catch {
+        // WaveSurfer.destroy() throws AbortError when audio fetch is
+        // still in-flight. Expected during React Strict Mode double-invoke
+        // and normal component cleanup -- safe to ignore.
+      }
       wavesurferRef.current = null
     }
-  }, [
-    isVisible,
-    src,
-    height,
-    waveColor,
-    progressColor,
-    cursorColor,
-    autoPlay,
-    hasLoaded,
-    onReady,
-    onPlay,
-    onPause,
-    onFinish,
-    onTimeUpdate,
-  ])
+    // Only re-initialize when src, visibility, or visual config changes.
+    // Callback props are handled via refs and don't need to be in deps.
+  }, [isVisible, src, height, waveColor, progressColor, cursorColor, autoPlay])
 
   // Toggle play/pause
   const togglePlayPause = useCallback(() => {
     if (wavesurferRef.current) {
       wavesurferRef.current.playPause()
-    }
-  }, [])
-
-  // Play from start
-  const play = useCallback(() => {
-    if (wavesurferRef.current) {
-      wavesurferRef.current.play()
-    }
-  }, [])
-
-  // Pause
-  const pause = useCallback(() => {
-    if (wavesurferRef.current) {
-      wavesurferRef.current.pause()
-    }
-  }, [])
-
-  // Seek to position
-  const seekTo = useCallback((progress: number) => {
-    if (wavesurferRef.current) {
-      wavesurferRef.current.seekTo(progress)
     }
   }, [])
 

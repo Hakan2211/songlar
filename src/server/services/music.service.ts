@@ -34,12 +34,20 @@ const MOCK_AUDIO_URL =
 
 export type MusicProvider = 'elevenlabs' | 'minimax-v2' | 'minimax-v2.5'
 
+export interface AudioSettings {
+  sampleRate?: number // 16000, 24000, 32000, 44100
+  bitrate?: number // 32000, 64000, 128000, 256000
+  format?: string // mp3, wav, pcm, flac
+}
+
 export interface MusicGenerationInput {
   provider: MusicProvider
   prompt: string // Style/mood description
   lyrics?: string // Required for MiniMax providers
-  durationMs?: number // Optional duration in milliseconds
+  durationMs?: number // Optional duration in milliseconds (ElevenLabs only, 3000-600000)
+  forceInstrumental?: boolean // Force instrumental output (ElevenLabs only)
   outputFormat?: string // e.g., "mp3_44100_128"
+  audioSettings?: AudioSettings // Audio quality settings (MiniMax only)
 }
 
 export interface MusicGenerationResult {
@@ -48,7 +56,7 @@ export interface MusicGenerationResult {
   audioUrl?: string
   error?: string
   progress?: number
-  logs?: string[]
+  logs?: Array<string>
 }
 
 export interface QueueSubmitResult {
@@ -139,15 +147,20 @@ async function falSubmitGeneration(
   let falInput: Record<string, unknown>
 
   if (input.provider === 'elevenlabs') {
-    // ElevenLabs Music - simple prompt-based generation
+    // ElevenLabs Music - prompt-based generation with duration & instrumental controls
     falInput = {
       prompt: input.prompt,
       output_format: input.outputFormat || 'mp3_44100_128',
     }
 
-    // Add duration if specified (in milliseconds)
+    // Add duration if specified (in milliseconds, 3000-600000)
     if (input.durationMs) {
       falInput.music_length_ms = input.durationMs
+    }
+
+    // Force instrumental output (no vocals)
+    if (input.forceInstrumental) {
+      falInput.force_instrumental = true
     }
   } else if (input.provider === 'minimax-v2') {
     // MiniMax Music v2 - requires prompt AND lyrics_prompt
@@ -158,6 +171,11 @@ async function falSubmitGeneration(
     falInput = {
       prompt: input.prompt, // Style/mood description (10-300 chars)
       lyrics_prompt: input.lyrics, // Lyrics content (10-3000 chars)
+      audio_setting: {
+        sample_rate: input.audioSettings?.sampleRate || 44100,
+        bitrate: input.audioSettings?.bitrate || 256000,
+        format: input.audioSettings?.format || 'mp3',
+      },
     }
   } else {
     throw new Error(`Unknown provider: ${input.provider}`)

@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion'
-import { Key, Music, Download } from 'lucide-react'
+import { Download, Key, Music } from 'lucide-react'
 
 const steps = [
   {

@@ -1,22 +1,22 @@
-import { createFileRoute, Link } from '@tanstack/react-router'
+import { Link, createFileRoute } from '@tanstack/react-router'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { useState, useEffect, useRef, useCallback } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { useVirtualizer } from '@tanstack/react-virtual'
 import {
-  Music,
-  Loader2,
   AlertCircle,
+  ChevronDown,
   Heart,
-  ListMusic,
   Info,
+  ListMusic,
+  Loader2,
+  Lock,
+  Music,
+  Settings2,
+  Timer,
 } from 'lucide-react'
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card'
+import { toast } from 'sonner'
+import type {Track} from '@/components/track-card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
 import { Label } from '@/components/ui/label'
@@ -35,11 +35,17 @@ import {
 } from '@/components/ui/tooltip'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from '@/components/ui/collapsible'
+import { Slider } from '@/components/ui/slider'
+import { Switch } from '@/components/ui/switch'
+import {
+  
   TrackCard,
-  TrackCardSkeleton,
-  type Track,
+  TrackCardSkeleton
 } from '@/components/track-card'
-import { toast } from 'sonner'
 
 export const Route = createFileRoute('/_app/music')({
   component: MusicPage,
@@ -52,15 +58,6 @@ interface Generation extends Track {
   error: string | null
 }
 
-interface ApiKeyStatus {
-  provider: 'fal' | 'minimax'
-  hasKey: boolean
-}
-
-interface BunnyStatus {
-  hasKey: boolean
-}
-
 function MusicPage() {
   const queryClient = useQueryClient()
   const trackListRef = useRef<HTMLDivElement>(null)
@@ -69,6 +66,18 @@ function MusicPage() {
   const [provider, setProvider] = useState<MusicProvider>('elevenlabs')
   const [prompt, setPrompt] = useState('')
   const [lyrics, setLyrics] = useState('')
+  const [durationMs, setDurationMs] = useState<number | null>(null) // null = Auto
+  const [forceInstrumental, setForceInstrumental] = useState(false)
+
+  // Audio quality settings (MiniMax only)
+  type SampleRateOption = '16000' | '24000' | '32000' | '44100'
+  type BitrateOption = '32000' | '64000' | '128000' | '256000'
+  type FormatOption = 'mp3' | 'wav' | 'pcm' | 'flac'
+
+  const [sampleRate, setSampleRate] = useState<SampleRateOption>('44100')
+  const [bitrate, setBitrate] = useState<BitrateOption>('256000')
+  const [audioFormat, setAudioFormat] = useState<FormatOption>('mp3')
+  const [showAudioSettings, setShowAudioSettings] = useState(false)
 
   // Filter state
   const [filterTab, setFilterTab] = useState<'all' | 'favorites'>('all')
@@ -82,7 +91,7 @@ function MusicPage() {
   const [uploadingId, setUploadingId] = useState<string | null>(null)
 
   // Fetch API key status
-  const { data: apiKeyStatuses } = useQuery<ApiKeyStatus[]>({
+  const { data: apiKeyStatuses } = useQuery({
     queryKey: ['api-keys'],
     queryFn: async () => {
       const { getAllApiKeyStatusesFn } = await import('@/server/byok.fn')
@@ -91,13 +100,24 @@ function MusicPage() {
   })
 
   // Fetch Bunny status
-  const { data: bunnyStatus } = useQuery<BunnyStatus>({
+  const { data: bunnyStatus } = useQuery({
     queryKey: ['bunny-status'],
     queryFn: async () => {
       const { getBunnyStatusFn } = await import('@/server/byok.fn')
       return getBunnyStatusFn()
     },
   })
+
+  // Check platform access (payment gate)
+  const { data: platformAccess } = useQuery({
+    queryKey: ['platform-access'],
+    queryFn: async () => {
+      const { checkPlatformAccessFn } = await import('@/server/music.fn')
+      return checkPlatformAccessFn()
+    },
+  })
+
+  const hasPlatformAccess = platformAccess?.hasAccess ?? false
 
   const hasFalKey = apiKeyStatuses?.find((s) => s.provider === 'fal')?.hasKey
   const hasMiniMaxKey = apiKeyStatuses?.find(
@@ -113,16 +133,13 @@ function MusicPage() {
     return hasFalKey
   }
 
-  // Fetch active generations for polling
-  const { data: activeGenerations } = useQuery<Generation[]>({
+  // Fetch active generations (refreshed via invalidation from status polling)
+  const { data: activeGenerations } = useQuery({
     queryKey: ['active-generations'],
     queryFn: async () => {
       const { getActiveGenerationsFn } = await import('@/server/music.fn')
-      return getActiveGenerationsFn() as Promise<Generation[]>
-    },
-    refetchInterval: (query) => {
-      const data = query.state.data
-      return data && data.length > 0 ? 3000 : false
+      const result = await getActiveGenerationsFn()
+      return result as unknown as Array<Generation>
     },
   })
 
@@ -137,11 +154,11 @@ function MusicPage() {
           favoritesOnly: filterTab === 'favorites',
         },
       })
-      return result
+      return result as { generations: Array<Generation>; total: number }
     },
   })
 
-  const generations = generationsData?.generations as Generation[] | undefined
+  const generations = generationsData?.generations
   const totalTracks = generationsData?.total || 0
 
   // Poll for status updates on active generations
@@ -194,19 +211,44 @@ function MusicPage() {
         provider: MusicProvider
         prompt?: string
         lyrics?: string
+        durationMs?: number
+        forceInstrumental?: boolean
+        audioSettings?: {
+          sampleRate?: '16000' | '24000' | '32000' | '44100'
+          bitrate?: '32000' | '64000' | '128000' | '256000'
+          format?: 'mp3' | 'wav' | 'pcm' | 'flac'
+        }
       } = {
         provider,
       }
 
       if (provider === 'elevenlabs') {
         data.prompt = prompt
+        if (durationMs !== null) {
+          data.durationMs = durationMs
+        }
+        if (forceInstrumental) {
+          data.forceInstrumental = true
+        }
       } else if (provider === 'minimax-v2') {
         data.prompt = prompt
         data.lyrics = lyrics
+        // Add audio quality settings
+        data.audioSettings = {
+          sampleRate,
+          bitrate,
+          format: audioFormat,
+        }
       } else if (provider === 'minimax-v2.5') {
         data.lyrics = lyrics
         if (prompt.trim()) {
           data.prompt = prompt
+        }
+        // Add audio quality settings
+        data.audioSettings = {
+          sampleRate,
+          bitrate,
+          format: audioFormat,
         }
       }
 
@@ -219,6 +261,12 @@ function MusicPage() {
         toast.success('Generation started!')
         setPrompt('')
         setLyrics('')
+        setDurationMs(null)
+        setForceInstrumental(false)
+        // Reset audio settings to defaults
+        setSampleRate('44100')
+        setBitrate('256000')
+        setAudioFormat('mp3')
       }
       queryClient.invalidateQueries({ queryKey: ['active-generations'] })
       queryClient.invalidateQueries({ queryKey: ['generations'] })
@@ -427,8 +475,35 @@ function MusicPage() {
         </p>
       </div>
 
+      {/* Platform Access Warning */}
+      {!hasPlatformAccess && platformAccess !== undefined && (
+        <div className="shrink-0 px-1 pb-4">
+          <Card className="border-purple-200 bg-purple-50 dark:border-purple-900 dark:bg-purple-950">
+            <CardContent className="pt-4 pb-4">
+              <div className="flex items-start gap-3">
+                <Lock className="h-5 w-5 text-purple-600 dark:text-purple-400 mt-0.5 shrink-0" />
+                <div className="flex-1">
+                  <p className="text-sm font-medium text-purple-800 dark:text-purple-200">
+                    Platform Access Required
+                  </p>
+                  <p className="text-sm text-purple-700 dark:text-purple-300 mt-1">
+                    Purchase platform access to start generating AI music. You
+                    can still browse your existing tracks.
+                  </p>
+                </div>
+                <Link to="/profile">
+                  <Button size="sm" variant="default">
+                    Get Access
+                  </Button>
+                </Link>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
       {/* API Key Warning */}
-      {apiKeyWarning && (
+      {hasPlatformAccess && apiKeyWarning && (
         <div className="shrink-0 px-1 pb-4">
           <Card className="border-amber-200 bg-amber-50 dark:border-amber-900 dark:bg-amber-950">
             <CardContent className="pt-4 pb-4">
@@ -682,6 +757,96 @@ function MusicPage() {
                 </div>
               )}
 
+              {/* ElevenLabs: Duration + Instrumental Controls */}
+              {provider === 'elevenlabs' && (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  {/* Duration Control */}
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <Label className="flex items-center gap-2">
+                        <Timer className="h-3.5 w-3.5" />
+                        Duration
+                      </Label>
+                      <span className="text-xs font-medium tabular-nums">
+                        {durationMs === null
+                          ? 'Auto'
+                          : `${Math.round(durationMs / 1000)}s`}
+                      </span>
+                    </div>
+                    <Slider
+                      min={0}
+                      max={600}
+                      step={5}
+                      value={[
+                        durationMs === null ? 0 : Math.round(durationMs / 1000),
+                      ]}
+                      onValueChange={([val]) =>
+                        setDurationMs(val === 0 ? null : val * 1000)
+                      }
+                      disabled={isGenerating}
+                    />
+                    <div className="flex items-center justify-between">
+                      <span className="text-[10px] text-muted-foreground">
+                        Auto
+                      </span>
+                      <div className="flex gap-1">
+                        {[30, 60, 120, 180, 300].map((sec) => (
+                          <button
+                            key={sec}
+                            type="button"
+                            onClick={() => setDurationMs(sec * 1000)}
+                            disabled={isGenerating}
+                            className={`text-[10px] px-1.5 py-0.5 rounded border transition-colors ${
+                              durationMs === sec * 1000
+                                ? 'bg-primary text-primary-foreground border-primary'
+                                : 'bg-muted/50 text-muted-foreground border-border hover:bg-muted'
+                            }`}
+                          >
+                            {sec < 60 ? `${sec}s` : `${sec / 60}m`}
+                          </button>
+                        ))}
+                        <button
+                          type="button"
+                          onClick={() => setDurationMs(null)}
+                          disabled={isGenerating}
+                          className={`text-[10px] px-1.5 py-0.5 rounded border transition-colors ${
+                            durationMs === null
+                              ? 'bg-primary text-primary-foreground border-primary'
+                              : 'bg-muted/50 text-muted-foreground border-border hover:bg-muted'
+                          }`}
+                        >
+                          Auto
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Instrumental Toggle */}
+                  <div className="space-y-2">
+                    <Label
+                      htmlFor="force-instrumental"
+                      className="flex items-center gap-2"
+                    >
+                      <Music className="h-3.5 w-3.5" />
+                      Instrumental Only
+                    </Label>
+                    <div className="flex items-center gap-3 pt-1">
+                      <Switch
+                        id="force-instrumental"
+                        checked={forceInstrumental}
+                        onCheckedChange={setForceInstrumental}
+                        disabled={isGenerating}
+                      />
+                      <span className="text-xs text-muted-foreground">
+                        {forceInstrumental
+                          ? 'No vocals - pure instrumental'
+                          : 'Model decides (may include vocals)'}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              )}
+
               {/* Optional Style Prompt for MiniMax v2.5 */}
               {provider === 'minimax-v2.5' && (
                 <div className="space-y-1">
@@ -704,9 +869,7 @@ function MusicPage() {
               {/* Lyrics Field for MiniMax */}
               {(provider === 'minimax-v2' || provider === 'minimax-v2.5') && (
                 <div className="space-y-1">
-                  <Label htmlFor="lyrics">
-                    Lyrics{provider === 'minimax-v2.5' ? '' : ' (Required)'}
-                  </Label>
+                  <Label htmlFor="lyrics">Lyrics</Label>
                   <Textarea
                     id="lyrics"
                     placeholder={`[Verse]
@@ -723,20 +886,143 @@ Singing our favorite song`}
                     className="resize-none font-mono text-sm"
                   />
                   <p className="text-xs text-muted-foreground">
-                    {lyrics.length}/{getLyricsLimit()} characters. Use [verse],
-                    [chorus], [bridge] tags. Use ## for instrumental sections.
+                    {lyrics.length}/{getLyricsLimit()} characters. Use [Verse],
+                    [Chorus], [Bridge], [Intro], [Outro] tags. Duration is
+                    determined by lyrics length.
                   </p>
                 </div>
+              )}
+
+              {/* Audio Quality Settings (MiniMax only) */}
+              {(provider === 'minimax-v2' || provider === 'minimax-v2.5') && (
+                <Collapsible
+                  open={showAudioSettings}
+                  onOpenChange={setShowAudioSettings}
+                >
+                  <CollapsibleTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="flex items-center gap-2 w-full justify-between px-2 h-8 text-muted-foreground hover:text-foreground"
+                      disabled={isGenerating}
+                    >
+                      <span className="flex items-center gap-2">
+                        <Settings2 className="h-3.5 w-3.5" />
+                        Audio Quality
+                      </span>
+                      <ChevronDown
+                        className={`h-4 w-4 transition-transform ${
+                          showAudioSettings ? 'rotate-180' : ''
+                        }`}
+                      />
+                    </Button>
+                  </CollapsibleTrigger>
+                  <CollapsibleContent className="pt-2">
+                    <div className="grid grid-cols-3 gap-3 p-3 rounded-md bg-muted/50 border">
+                      {/* Sample Rate */}
+                      <div className="space-y-1">
+                        <Label
+                          htmlFor="sample-rate"
+                          className="text-xs text-muted-foreground"
+                        >
+                          Sample Rate
+                        </Label>
+                        <Select
+                          value={sampleRate}
+                          onValueChange={(v) =>
+                            setSampleRate(v as SampleRateOption)
+                          }
+                          disabled={isGenerating}
+                        >
+                          <SelectTrigger id="sample-rate" className="h-8">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="16000">16 kHz</SelectItem>
+                            <SelectItem value="24000">24 kHz</SelectItem>
+                            <SelectItem value="32000">32 kHz</SelectItem>
+                            <SelectItem value="44100">44.1 kHz</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+
+                      {/* Bitrate */}
+                      <div className="space-y-1">
+                        <Label
+                          htmlFor="bitrate"
+                          className="text-xs text-muted-foreground"
+                        >
+                          Bitrate
+                        </Label>
+                        <Select
+                          value={bitrate}
+                          onValueChange={(v) => setBitrate(v as BitrateOption)}
+                          disabled={isGenerating}
+                        >
+                          <SelectTrigger id="bitrate" className="h-8">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="32000">32 kbps</SelectItem>
+                            <SelectItem value="64000">64 kbps</SelectItem>
+                            <SelectItem value="128000">128 kbps</SelectItem>
+                            <SelectItem value="256000">256 kbps</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+
+                      {/* Format */}
+                      <div className="space-y-1">
+                        <Label
+                          htmlFor="format"
+                          className="text-xs text-muted-foreground"
+                        >
+                          Format
+                        </Label>
+                        <Select
+                          value={audioFormat}
+                          onValueChange={(v) =>
+                            setAudioFormat(v as FormatOption)
+                          }
+                          disabled={isGenerating}
+                        >
+                          <SelectTrigger id="format" className="h-8">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="mp3">MP3</SelectItem>
+                            <SelectItem value="wav">WAV</SelectItem>
+                            <SelectItem value="pcm">PCM</SelectItem>
+                            {provider === 'minimax-v2' && (
+                              <SelectItem value="flac">FLAC</SelectItem>
+                            )}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+                    <p className="text-[10px] text-muted-foreground mt-1.5 px-1">
+                      Higher sample rate and bitrate = better quality but larger
+                      file size
+                    </p>
+                  </CollapsibleContent>
+                </Collapsible>
               )}
 
               {/* Generate Button */}
               <Button
                 onClick={handleGenerate}
-                disabled={isGenerating || !hasRequiredKey()}
+                disabled={
+                  isGenerating || !hasRequiredKey() || !hasPlatformAccess
+                }
                 className="w-full"
                 size="lg"
               >
-                {isGenerating ? (
+                {!hasPlatformAccess ? (
+                  <>
+                    <Lock className="mr-2 h-4 w-4" />
+                    Purchase Access to Generate
+                  </>
+                ) : isGenerating ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                     Starting Generation...

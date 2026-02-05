@@ -179,43 +179,45 @@ function ProfilePage() {
           <div className="flex items-center justify-between">
             <div>
               <p className="font-medium">
-                {subscription?.status === 'active' ? 'Pro Plan' : 'Free Plan'}
+                {subscription?.hasPlatformAccess
+                  ? 'Platform Access'
+                  : 'No Access'}
               </p>
               <p className="text-sm text-muted-foreground">
-                {subscription?.status === 'active'
-                  ? 'You have access to all features'
-                  : 'Upgrade to unlock all features'}
+                {subscription?.hasPlatformAccess
+                  ? 'You have full access to AI music generation'
+                  : 'Purchase access to start generating AI music'}
               </p>
             </div>
             <div className="text-right">
               <span
                 className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${
-                  subscription?.status === 'active'
+                  subscription?.hasPlatformAccess
                     ? 'bg-green-500/10 text-green-600'
                     : 'bg-muted text-muted-foreground'
                 }`}
               >
-                {subscription?.status === 'active' ? 'Active' : 'Free'}
+                {subscription?.hasPlatformAccess ? 'Active' : 'Inactive'}
               </span>
             </div>
           </div>
         </div>
 
         <div className="flex gap-4">
-          {subscription?.status === 'active' ? (
+          {subscription?.hasPlatformAccess ? (
             <Button
               variant="outline"
               onClick={() => portalMutation.mutate()}
               disabled={portalMutation.isPending}
             >
-              {portalMutation.isPending ? 'Loading...' : 'Manage Subscription'}
+              {portalMutation.isPending ? 'Loading...' : 'Manage Billing'}
             </Button>
           ) : (
             <Button
               onClick={() => checkoutMutation.mutate()}
               disabled={checkoutMutation.isPending}
             >
-              {checkoutMutation.isPending ? 'Loading...' : 'Upgrade to Pro'}
+              {checkoutMutation.isPending ? 'Loading...' : 'Purchase Access'}
             </Button>
           )}
         </div>

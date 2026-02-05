@@ -7,14 +7,14 @@
 
 import { createServerFn } from '@tanstack/react-start'
 import { z } from 'zod'
-import { prisma } from '@/db'
 import { authMiddleware } from './middleware'
 import {
-  encrypt,
   decrypt,
+  encrypt,
   getLastFourChars,
   validateApiKeyFormat,
 } from './services/encryption.server'
+import { prisma } from '@/db'
 
 // ============================================================================
 // Types
@@ -69,7 +69,7 @@ const saveBunnySettingsSchema = z.object({
  */
 export const getAllApiKeyStatusesFn = createServerFn({ method: 'GET' })
   .middleware([authMiddleware])
-  .handler(async ({ context }): Promise<ApiKeyStatus[]> => {
+  .handler(async ({ context }): Promise<Array<ApiKeyStatus>> => {
     const user = await prisma.user.findUnique({
       where: { id: context.user.id },
       select: {
@@ -137,7 +137,7 @@ export const getBunnyStatusFn = createServerFn({ method: 'GET' })
  */
 export const saveApiKeyFn = createServerFn({ method: 'POST' })
   .middleware([authMiddleware])
-  .validator(saveApiKeySchema)
+  .inputValidator(saveApiKeySchema)
   .handler(async ({ data, context }) => {
     const { provider, apiKey } = data
     const trimmedKey = apiKey.trim()
@@ -186,7 +186,7 @@ export const saveApiKeyFn = createServerFn({ method: 'POST' })
  */
 export const deleteApiKeyFn = createServerFn({ method: 'POST' })
   .middleware([authMiddleware])
-  .validator(deleteApiKeySchema)
+  .inputValidator(deleteApiKeySchema)
   .handler(async ({ data, context }) => {
     const { provider } = data
 
@@ -223,7 +223,7 @@ export const deleteApiKeyFn = createServerFn({ method: 'POST' })
  */
 export const getDecryptedApiKeyFn = createServerFn({ method: 'GET' })
   .middleware([authMiddleware])
-  .validator(getDecryptedKeySchema)
+  .inputValidator(getDecryptedKeySchema)
   .handler(async ({ data, context }): Promise<string | null> => {
     const { provider } = data
 
@@ -260,7 +260,7 @@ export const getDecryptedApiKeyFn = createServerFn({ method: 'GET' })
  */
 export const saveBunnySettingsFn = createServerFn({ method: 'POST' })
   .middleware([authMiddleware])
-  .validator(saveBunnySettingsSchema)
+  .inputValidator(saveBunnySettingsSchema)
   .handler(async ({ data, context }) => {
     const { apiKey, storageZone, pullZone } = data
     const trimmedKey = apiKey.trim()

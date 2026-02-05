@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion'
-import { Key, Music, Mic2, Lock, Download, Infinity } from 'lucide-react'
+import { Download, Infinity, Key, Lock, Mic2, Music } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 const features = [

@@ -9,11 +9,11 @@
  */
 
 import {
-  randomBytes,
   createCipheriv,
   createDecipheriv,
   pbkdf2Sync,
-} from 'crypto'
+  randomBytes,
+} from 'node:crypto'
 
 // Algorithm configuration
 const ALGORITHM = 'aes-256-gcm'

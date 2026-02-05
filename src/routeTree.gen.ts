@@ -18,7 +18,6 @@ import { Route as AuthLoginRouteImport } from './routes/_auth/login'
 import { Route as AppSettingsRouteImport } from './routes/_app/settings'
 import { Route as AppProfileRouteImport } from './routes/_app/profile'
 import { Route as AppMusicRouteImport } from './routes/_app/music'
-import { Route as AppLibraryRouteImport } from './routes/_app/library'
 import { Route as AppAdminRouteImport } from './routes/_app/admin'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
 
@@ -65,11 +64,6 @@ const AppMusicRoute = AppMusicRouteImport.update({
   path: '/music',
   getParentRoute: () => AppRoute,
 } as any)
-const AppLibraryRoute = AppLibraryRouteImport.update({
-  id: '/library',
-  path: '/library',
-  getParentRoute: () => AppRoute,
-} as any)
 const AppAdminRoute = AppAdminRouteImport.update({
   id: '/admin',
   path: '/admin',
@@ -85,7 +79,6 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/pricing': typeof PricingRoute
   '/admin': typeof AppAdminRoute
-  '/library': typeof AppLibraryRoute
   '/music': typeof AppMusicRoute
   '/profile': typeof AppProfileRoute
   '/settings': typeof AppSettingsRoute
@@ -97,7 +90,6 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/pricing': typeof PricingRoute
   '/admin': typeof AppAdminRoute
-  '/library': typeof AppLibraryRoute
   '/music': typeof AppMusicRoute
   '/profile': typeof AppProfileRoute
   '/settings': typeof AppSettingsRoute
@@ -112,7 +104,6 @@ export interface FileRoutesById {
   '/_auth': typeof AuthRouteWithChildren
   '/pricing': typeof PricingRoute
   '/_app/admin': typeof AppAdminRoute
-  '/_app/library': typeof AppLibraryRoute
   '/_app/music': typeof AppMusicRoute
   '/_app/profile': typeof AppProfileRoute
   '/_app/settings': typeof AppSettingsRoute
@@ -126,7 +117,6 @@ export interface FileRouteTypes {
     | '/'
     | '/pricing'
     | '/admin'
-    | '/library'
     | '/music'
     | '/profile'
     | '/settings'
@@ -138,7 +128,6 @@ export interface FileRouteTypes {
     | '/'
     | '/pricing'
     | '/admin'
-    | '/library'
     | '/music'
     | '/profile'
     | '/settings'
@@ -152,7 +141,6 @@ export interface FileRouteTypes {
     | '/_auth'
     | '/pricing'
     | '/_app/admin'
-    | '/_app/library'
     | '/_app/music'
     | '/_app/profile'
     | '/_app/settings'
@@ -234,13 +222,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppMusicRouteImport
       parentRoute: typeof AppRoute
     }
-    '/_app/library': {
-      id: '/_app/library'
-      path: '/library'
-      fullPath: '/library'
-      preLoaderRoute: typeof AppLibraryRouteImport
-      parentRoute: typeof AppRoute
-    }
     '/_app/admin': {
       id: '/_app/admin'
       path: '/admin'
@@ -260,7 +241,6 @@ declare module '@tanstack/react-router' {
 
 interface AppRouteChildren {
   AppAdminRoute: typeof AppAdminRoute
-  AppLibraryRoute: typeof AppLibraryRoute
   AppMusicRoute: typeof AppMusicRoute
   AppProfileRoute: typeof AppProfileRoute
   AppSettingsRoute: typeof AppSettingsRoute
@@ -268,7 +248,6 @@ interface AppRouteChildren {
 
 const AppRouteChildren: AppRouteChildren = {
   AppAdminRoute: AppAdminRoute,
-  AppLibraryRoute: AppLibraryRoute,
   AppMusicRoute: AppMusicRoute,
   AppProfileRoute: AppProfileRoute,
   AppSettingsRoute: AppSettingsRoute,

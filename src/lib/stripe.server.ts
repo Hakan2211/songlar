@@ -23,6 +23,7 @@ export interface CheckoutResult {
 export interface SubscriptionStatus {
   status: 'active' | 'canceled' | 'past_due' | 'trialing' | 'none'
   plan: string | null
+  hasPlatformAccess: boolean
 }
 
 export async function createCheckoutSession(
@@ -81,19 +82,30 @@ export async function getSubscriptionStatus(
   const stripe = getStripeClient()
 
   if (!stripe) {
-    // In mock mode, always return active Pro subscription
-    return { status: 'active', plan: 'pro' }
+    // In mock mode, always return active with platform access
+    return { status: 'active', plan: 'pro', hasPlatformAccess: true }
   }
 
-  const user = await prisma.user.findUnique({ where: { id: userId } })
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: {
+      subscriptionStatus: true,
+      hasPlatformAccess: true,
+    },
+  })
 
   if (!user?.subscriptionStatus) {
-    return { status: 'none', plan: null }
+    return {
+      status: 'none',
+      plan: null,
+      hasPlatformAccess: user?.hasPlatformAccess ?? false,
+    }
   }
 
   return {
     status: user.subscriptionStatus as SubscriptionStatus['status'],
     plan: user.subscriptionStatus === 'active' ? 'pro' : null,
+    hasPlatformAccess: user.hasPlatformAccess,
   }
 }
 
@@ -125,7 +137,12 @@ export async function handleWebhook(
       if (userId) {
         await prisma.user.update({
           where: { id: userId },
-          data: { subscriptionStatus: 'active' },
+          data: {
+            subscriptionStatus: 'active',
+            hasPlatformAccess: true,
+            platformPurchaseDate: new Date(),
+            platformStripePaymentId: session.payment_intent as string | null,
+          },
         })
       }
       break

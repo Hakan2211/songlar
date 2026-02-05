@@ -1,16 +1,17 @@
 import { createFileRoute } from '@tanstack/react-router'
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
 import {
-  Key,
-  ExternalLink,
-  Trash2,
   Check,
-  Loader2,
+  Cloud,
+  ExternalLink,
   Eye,
   EyeOff,
-  Cloud,
+  Key,
+  Loader2,
+  Trash2,
 } from 'lucide-react'
+import { toast } from 'sonner'
 import {
   Card,
   CardContent,
@@ -21,7 +22,6 @@ import {
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { toast } from 'sonner'
 
 // Types for API key status
 interface ApiKeyStatus {
@@ -48,7 +48,7 @@ function SettingsPage() {
 
   // Fetch API key statuses using dynamic import
   const { data: apiKeyStatuses, isLoading: isLoadingKeys } = useQuery<
-    ApiKeyStatus[]
+    Array<ApiKeyStatus>
   >({
     queryKey: ['api-keys'],
     queryFn: async () => {

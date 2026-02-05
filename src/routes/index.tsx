@@ -1,13 +1,13 @@
 import { createFileRoute } from '@tanstack/react-router'
 import {
-  LandingHeader,
-  HeroSection,
-  FeaturesSection,
-  HowItWorksSection,
-  PricingSection,
-  FAQSection,
   CTASection,
+  FAQSection,
+  FeaturesSection,
+  HeroSection,
+  HowItWorksSection,
   LandingFooter,
+  LandingHeader,
+  PricingSection,
 } from '@/components/landing'
 
 export const Route = createFileRoute('/')({

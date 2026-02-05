@@ -12,38 +12,48 @@
 
 import { createServerFn } from '@tanstack/react-start'
 import { z } from 'zod'
-import { prisma } from '@/db'
 import { authMiddleware } from './middleware'
 import { decrypt } from './services/encryption.server'
 import {
-  submitMusicGeneration,
-  checkMusicGenerationStatus,
+  
   cancelMusicGeneration,
+  checkMusicGenerationStatus,
   isMockMode,
   isQueueBasedProvider,
-  type MusicProvider,
+  submitMusicGeneration
 } from './services/music.service'
 import {
   generateMusicWithMiniMax,
   isMiniMaxMockMode,
 } from './services/minimax.service'
 import {
-  uploadAudioToBunny,
+  
   deleteAudioFromBunny,
   getAudioFilename,
-  type BunnySettings,
+  uploadAudioToBunny
 } from './services/bunny.service'
+import type {MusicProvider} from './services/music.service';
+import type {BunnySettings} from './services/bunny.service';
+import { prisma } from '@/db'
 
 // ============================================================================
 // Schemas
 // ============================================================================
+
+const audioSettingsSchema = z.object({
+  sampleRate: z.enum(['16000', '24000', '32000', '44100']).optional(),
+  bitrate: z.enum(['32000', '64000', '128000', '256000']).optional(),
+  format: z.enum(['mp3', 'wav', 'pcm', 'flac']).optional(),
+})
 
 const generateMusicSchema = z.object({
   provider: z.enum(['elevenlabs', 'minimax-v2', 'minimax-v2.5']),
   prompt: z.string().optional(),
   lyrics: z.string().optional(),
   durationMs: z.number().min(3000).max(600000).optional(),
+  forceInstrumental: z.boolean().optional(),
   title: z.string().optional(),
+  audioSettings: audioSettingsSchema.optional(),
 })
 
 const checkStatusSchema = z.object({
@@ -132,13 +142,56 @@ function getProviderDisplayName(provider: string): string {
 // ============================================================================
 
 /**
+ * Check if the current user has platform access (paid)
+ * In mock payment mode, always returns true for development
+ */
+export const checkPlatformAccessFn = createServerFn({ method: 'GET' })
+  .middleware([authMiddleware])
+  .handler(async ({ context }) => {
+    const mockPayments = process.env.MOCK_PAYMENTS === 'true'
+    if (mockPayments) {
+      return { hasAccess: true, mock: true }
+    }
+
+    const user = await prisma.user.findUnique({
+      where: { id: context.user.id },
+      select: { hasPlatformAccess: true },
+    })
+
+    return { hasAccess: user?.hasPlatformAccess ?? false, mock: false }
+  })
+
+/**
  * Start a new music generation
  */
 export const generateMusicFn = createServerFn({ method: 'POST' })
   .middleware([authMiddleware])
-  .validator(generateMusicSchema)
+  .inputValidator(generateMusicSchema)
   .handler(async ({ data, context }) => {
-    const { provider, prompt, lyrics, durationMs, title } = data
+    // Check platform access (skip in mock payment mode)
+    const mockPayments = process.env.MOCK_PAYMENTS === 'true'
+    if (!mockPayments) {
+      const user = await prisma.user.findUnique({
+        where: { id: context.user.id },
+        select: { hasPlatformAccess: true },
+      })
+
+      if (!user?.hasPlatformAccess) {
+        throw new Error(
+          'Platform access required. Please purchase access to generate music.',
+        )
+      }
+    }
+
+    const {
+      provider,
+      prompt,
+      lyrics,
+      durationMs,
+      forceInstrumental,
+      title,
+      audioSettings,
+    } = data
 
     // Validate provider-specific requirements
     if (provider === 'elevenlabs') {
@@ -205,10 +258,32 @@ export const generateMusicFn = createServerFn({ method: 'POST' })
       })
 
       try {
+        // Build audio settings for MiniMax v2.5
+        const minimaxAudioSettings = audioSettings
+          ? {
+              sampleRate: audioSettings.sampleRate
+                ? (parseInt(audioSettings.sampleRate, 10) as
+                    | 16000
+                    | 24000
+                    | 32000
+                    | 44100)
+                : undefined,
+              bitrate: audioSettings.bitrate
+                ? (parseInt(audioSettings.bitrate, 10) as
+                    | 32000
+                    | 64000
+                    | 128000
+                    | 256000)
+                : undefined,
+              format: audioSettings.format as 'mp3' | 'wav' | 'pcm' | undefined,
+            }
+          : undefined
+
         // Call MiniMax API (this blocks until completion)
         const result = await generateMusicWithMiniMax(apiKey, {
           prompt: prompt || undefined,
           lyrics: lyrics!,
+          audioSettings: minimaxAudioSettings,
         })
 
         if (!result.success) {
@@ -290,12 +365,28 @@ export const generateMusicFn = createServerFn({ method: 'POST' })
       )
     }
 
+    // Build audio settings for fal.ai (MiniMax v2)
+    const falAudioSettings =
+      provider === 'minimax-v2' && audioSettings
+        ? {
+            sampleRate: audioSettings.sampleRate
+              ? parseInt(audioSettings.sampleRate, 10)
+              : undefined,
+            bitrate: audioSettings.bitrate
+              ? parseInt(audioSettings.bitrate, 10)
+              : undefined,
+            format: audioSettings.format,
+          }
+        : undefined
+
     // Submit to fal.ai
     const result = await submitMusicGeneration(apiKey, {
-      provider: provider as 'elevenlabs' | 'minimax-v2',
+      provider: provider,
       prompt: prompt || '',
       lyrics,
       durationMs,
+      forceInstrumental,
+      audioSettings: falAudioSettings,
     })
 
     // Store in database
@@ -326,7 +417,7 @@ export const generateMusicFn = createServerFn({ method: 'POST' })
  */
 export const checkGenerationStatusFn = createServerFn({ method: 'GET' })
   .middleware([authMiddleware])
-  .validator(checkStatusSchema)
+  .inputValidator(checkStatusSchema)
   .handler(async ({ data, context }) => {
     const { generationId } = data
 
@@ -452,7 +543,7 @@ export const checkGenerationStatusFn = createServerFn({ method: 'GET' })
  */
 export const cancelGenerationFn = createServerFn({ method: 'POST' })
   .middleware([authMiddleware])
-  .validator(cancelGenerationSchema)
+  .inputValidator(cancelGenerationSchema)
   .handler(async ({ data, context }) => {
     const { generationId } = data
 
@@ -502,7 +593,7 @@ export const cancelGenerationFn = createServerFn({ method: 'POST' })
  */
 export const listGenerationsFn = createServerFn({ method: 'GET' })
   .middleware([authMiddleware])
-  .validator(listGenerationsSchema)
+  .inputValidator(listGenerationsSchema)
   .handler(async ({ data, context }) => {
     const { status, favoritesOnly, limit = 50, offset = 0 } = data
 
@@ -545,7 +636,7 @@ export const listGenerationsFn = createServerFn({ method: 'GET' })
  */
 export const getGenerationFn = createServerFn({ method: 'GET' })
   .middleware([authMiddleware])
-  .validator(z.object({ generationId: z.string() }))
+  .inputValidator(z.object({ generationId: z.string() }))
   .handler(async ({ data, context }) => {
     const generation = await prisma.musicGeneration.findFirst({
       where: {
@@ -566,7 +657,7 @@ export const getGenerationFn = createServerFn({ method: 'GET' })
  */
 export const deleteGenerationFn = createServerFn({ method: 'POST' })
   .middleware([authMiddleware])
-  .validator(z.object({ generationId: z.string() }))
+  .inputValidator(z.object({ generationId: z.string() }))
   .handler(async ({ data, context }) => {
     const generation = await prisma.musicGeneration.findFirst({
       where: {
@@ -608,7 +699,7 @@ export const deleteGenerationFn = createServerFn({ method: 'POST' })
  */
 export const updateGenerationTitleFn = createServerFn({ method: 'POST' })
   .middleware([authMiddleware])
-  .validator(
+  .inputValidator(
     z.object({
       generationId: z.string(),
       title: z.string().min(1).max(200),
@@ -639,7 +730,7 @@ export const updateGenerationTitleFn = createServerFn({ method: 'POST' })
  */
 export const toggleFavoriteFn = createServerFn({ method: 'POST' })
   .middleware([authMiddleware])
-  .validator(z.object({ generationId: z.string() }))
+  .inputValidator(z.object({ generationId: z.string() }))
   .handler(async ({ data, context }) => {
     const generation = await prisma.musicGeneration.findFirst({
       where: {
@@ -685,7 +776,7 @@ export const getActiveGenerationsFn = createServerFn({ method: 'GET' })
  */
 export const uploadToCdnFn = createServerFn({ method: 'POST' })
   .middleware([authMiddleware])
-  .validator(z.object({ generationId: z.string() }))
+  .inputValidator(z.object({ generationId: z.string() }))
   .handler(async ({ data, context }) => {
     const generation = await prisma.musicGeneration.findFirst({
       where: {

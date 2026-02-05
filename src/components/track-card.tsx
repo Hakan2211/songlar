@@ -2,16 +2,16 @@
 
 import { useState } from 'react'
 import {
-  Music,
-  Heart,
   Cloud,
   CloudOff,
-  MoreVertical,
   Download,
+  Heart,
+  Loader2,
+  MoreVertical,
+  Music,
   Pencil,
   Trash2,
   Upload,
-  Loader2,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -45,7 +45,7 @@ export interface Track {
   audioUrl: string | null
   audioStored: boolean
   isFavorite: boolean
-  createdAt: string
+  createdAt: string | Date
   audioDurationMs?: number | null
 }
 
@@ -99,8 +99,8 @@ function formatDuration(ms: number | null | undefined): string {
   return `${mins}:${secs.toString().padStart(2, '0')}`
 }
 
-function formatDate(dateStr: string): string {
-  const date = new Date(dateStr)
+function formatDate(dateStr: string | Date): string {
+  const date = typeof dateStr === 'string' ? new Date(dateStr) : dateStr
   return date.toLocaleDateString(undefined, {
     month: 'short',
     day: 'numeric',
