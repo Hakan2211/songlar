@@ -129,6 +129,53 @@ function MusicPage() {
   >(null)
   const [voiceConversionTrackTitle, setVoiceConversionTrackTitle] = useState('')
 
+  // Fetch active voice conversions
+  const { data: voiceConversions, refetch: refetchConversions } = useQuery({
+    queryKey: ['voice-conversions'],
+    queryFn: async () => {
+      const { listVoiceConversionsFn } = await import('@/server/voice.fn')
+      return listVoiceConversionsFn()
+    },
+  })
+
+  const activeConversions = voiceConversions?.filter(
+    (c) => c.status === 'processing',
+  )
+  const hasActiveConversions = activeConversions && activeConversions.length > 0
+
+  // Poll active conversions
+  useEffect(() => {
+    if (!hasActiveConversions) return
+
+    const pollConversions = async () => {
+      const { checkVoiceConversionStatusFn } = await import('@/server/voice.fn')
+
+      for (const conv of activeConversions) {
+        try {
+          const result = await checkVoiceConversionStatusFn({
+            data: { conversionId: conv.id },
+          })
+
+          if (result.status === 'completed' || result.status === 'failed') {
+            refetchConversions()
+            if (result.status === 'completed') {
+              toast.success(
+                `Voice conversion "${conv.title || 'Untitled'}" complete!`,
+              )
+            } else if (result.error) {
+              toast.error(`Conversion failed: ${result.error}`)
+            }
+          }
+        } catch (error) {
+          console.error('Error polling conversion status:', error)
+        }
+      }
+    }
+
+    const interval = setInterval(pollConversions, 3000)
+    return () => clearInterval(interval)
+  }, [hasActiveConversions, activeConversions, refetchConversions])
+
   // Fetch API key status
   const { data: apiKeyStatuses } = useQuery({
     queryKey: ['api-keys'],
@@ -851,6 +898,37 @@ Singing our favorite song`}
                     </span>
                     <span className="text-blue-600 dark:text-blue-400 font-medium tabular-nums ml-3">
                       {gen.progress || 0}%
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
+      {/* Active Voice Conversions */}
+      {hasActiveConversions && (
+        <div className="shrink-0 px-1 pb-3">
+          <Card className="border-violet-200 bg-violet-50 dark:border-violet-900 dark:bg-violet-950/50">
+            <CardContent className="py-3">
+              <div className="flex items-center gap-3">
+                <Loader2 className="h-4 w-4 animate-spin text-violet-600 dark:text-violet-400" />
+                <span className="text-sm font-medium text-violet-900 dark:text-violet-100">
+                  Voice Conversions
+                </span>
+              </div>
+              <div className="mt-2 space-y-1.5">
+                {activeConversions.map((conv) => (
+                  <div
+                    key={conv.id}
+                    className="flex items-center justify-between text-sm"
+                  >
+                    <span className="text-violet-700 dark:text-violet-300 truncate flex-1">
+                      {conv.title || 'Voice Conversion'}
+                    </span>
+                    <span className="text-violet-600 dark:text-violet-400 font-medium tabular-nums ml-3">
+                      {conv.progress || 0}%
                     </span>
                   </div>
                 ))}

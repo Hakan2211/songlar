@@ -334,6 +334,33 @@ export async function checkVoiceCloneStatus(
 }
 
 /**
+ * Upload an audio buffer to fal.ai storage and return a URL.
+ *
+ * Uses fal.storage.upload() to get a fal.ai-hosted URL that can be
+ * used as the audio_url parameter for voice cloning requests.
+ */
+export async function uploadAudioToFalStorage(
+  apiKey: string,
+  audioBuffer: Buffer,
+  filename: string,
+  contentType: string = 'audio/webm',
+): Promise<string> {
+  if (MOCK_VOICE_CLONE) {
+    console.log('[MOCK] Uploading audio to fal.ai storage:', filename)
+    return `https://fal.media/files/mock/${filename}`
+  }
+
+  configureFalClient(apiKey)
+
+  const blob = new Blob([audioBuffer as BlobPart], { type: contentType })
+  const file = new File([blob], filename, { type: contentType })
+  const url = await fal.storage.upload(file)
+
+  console.log('[fal.ai] Audio uploaded to storage:', url)
+  return url
+}
+
+/**
  * Check if voice clone service is available (mock mode or real API)
  */
 export function isVoiceCloneServiceAvailable(): boolean {

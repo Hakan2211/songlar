@@ -36,6 +36,10 @@ export type VoiceCloneMinAggregateOutputType = {
   sourceAudioUrl: string | null
   sourceAudioStored: boolean | null
   previewAudioUrl: string | null
+  rvcModelUrl: string | null
+  rvcModelStatus: string | null
+  rvcRequestId: string | null
+  rvcError: string | null
   status: string | null
   error: string | null
   requestId: string | null
@@ -55,6 +59,10 @@ export type VoiceCloneMaxAggregateOutputType = {
   sourceAudioUrl: string | null
   sourceAudioStored: boolean | null
   previewAudioUrl: string | null
+  rvcModelUrl: string | null
+  rvcModelStatus: string | null
+  rvcRequestId: string | null
+  rvcError: string | null
   status: string | null
   error: string | null
   requestId: string | null
@@ -74,6 +82,10 @@ export type VoiceCloneCountAggregateOutputType = {
   sourceAudioUrl: number
   sourceAudioStored: number
   previewAudioUrl: number
+  rvcModelUrl: number
+  rvcModelStatus: number
+  rvcRequestId: number
+  rvcError: number
   status: number
   error: number
   requestId: number
@@ -95,6 +107,10 @@ export type VoiceCloneMinAggregateInputType = {
   sourceAudioUrl?: true
   sourceAudioStored?: true
   previewAudioUrl?: true
+  rvcModelUrl?: true
+  rvcModelStatus?: true
+  rvcRequestId?: true
+  rvcError?: true
   status?: true
   error?: true
   requestId?: true
@@ -114,6 +130,10 @@ export type VoiceCloneMaxAggregateInputType = {
   sourceAudioUrl?: true
   sourceAudioStored?: true
   previewAudioUrl?: true
+  rvcModelUrl?: true
+  rvcModelStatus?: true
+  rvcRequestId?: true
+  rvcError?: true
   status?: true
   error?: true
   requestId?: true
@@ -133,6 +153,10 @@ export type VoiceCloneCountAggregateInputType = {
   sourceAudioUrl?: true
   sourceAudioStored?: true
   previewAudioUrl?: true
+  rvcModelUrl?: true
+  rvcModelStatus?: true
+  rvcRequestId?: true
+  rvcError?: true
   status?: true
   error?: true
   requestId?: true
@@ -225,6 +249,10 @@ export type VoiceCloneGroupByOutputType = {
   sourceAudioUrl: string
   sourceAudioStored: boolean
   previewAudioUrl: string | null
+  rvcModelUrl: string | null
+  rvcModelStatus: string | null
+  rvcRequestId: string | null
+  rvcError: string | null
   status: string
   error: string | null
   requestId: string | null
@@ -265,12 +293,17 @@ export type VoiceCloneWhereInput = {
   sourceAudioUrl?: Prisma.StringFilter<"VoiceClone"> | string
   sourceAudioStored?: Prisma.BoolFilter<"VoiceClone"> | boolean
   previewAudioUrl?: Prisma.StringNullableFilter<"VoiceClone"> | string | null
+  rvcModelUrl?: Prisma.StringNullableFilter<"VoiceClone"> | string | null
+  rvcModelStatus?: Prisma.StringNullableFilter<"VoiceClone"> | string | null
+  rvcRequestId?: Prisma.StringNullableFilter<"VoiceClone"> | string | null
+  rvcError?: Prisma.StringNullableFilter<"VoiceClone"> | string | null
   status?: Prisma.StringFilter<"VoiceClone"> | string
   error?: Prisma.StringNullableFilter<"VoiceClone"> | string | null
   requestId?: Prisma.StringNullableFilter<"VoiceClone"> | string | null
   createdAt?: Prisma.DateTimeFilter<"VoiceClone"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"VoiceClone"> | Date | string
   user?: Prisma.XOR<Prisma.UserScalarRelationFilter, Prisma.UserWhereInput>
+  voiceConversions?: Prisma.VoiceConversionListRelationFilter
 }
 
 export type VoiceCloneOrderByWithRelationInput = {
@@ -285,12 +318,17 @@ export type VoiceCloneOrderByWithRelationInput = {
   sourceAudioUrl?: Prisma.SortOrder
   sourceAudioStored?: Prisma.SortOrder
   previewAudioUrl?: Prisma.SortOrderInput | Prisma.SortOrder
+  rvcModelUrl?: Prisma.SortOrderInput | Prisma.SortOrder
+  rvcModelStatus?: Prisma.SortOrderInput | Prisma.SortOrder
+  rvcRequestId?: Prisma.SortOrderInput | Prisma.SortOrder
+  rvcError?: Prisma.SortOrderInput | Prisma.SortOrder
   status?: Prisma.SortOrder
   error?: Prisma.SortOrderInput | Prisma.SortOrder
   requestId?: Prisma.SortOrderInput | Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
   user?: Prisma.UserOrderByWithRelationInput
+  voiceConversions?: Prisma.VoiceConversionOrderByRelationAggregateInput
 }
 
 export type VoiceCloneWhereUniqueInput = Prisma.AtLeast<{
@@ -308,12 +346,17 @@ export type VoiceCloneWhereUniqueInput = Prisma.AtLeast<{
   sourceAudioUrl?: Prisma.StringFilter<"VoiceClone"> | string
   sourceAudioStored?: Prisma.BoolFilter<"VoiceClone"> | boolean
   previewAudioUrl?: Prisma.StringNullableFilter<"VoiceClone"> | string | null
+  rvcModelUrl?: Prisma.StringNullableFilter<"VoiceClone"> | string | null
+  rvcModelStatus?: Prisma.StringNullableFilter<"VoiceClone"> | string | null
+  rvcRequestId?: Prisma.StringNullableFilter<"VoiceClone"> | string | null
+  rvcError?: Prisma.StringNullableFilter<"VoiceClone"> | string | null
   status?: Prisma.StringFilter<"VoiceClone"> | string
   error?: Prisma.StringNullableFilter<"VoiceClone"> | string | null
   requestId?: Prisma.StringNullableFilter<"VoiceClone"> | string | null
   createdAt?: Prisma.DateTimeFilter<"VoiceClone"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"VoiceClone"> | Date | string
   user?: Prisma.XOR<Prisma.UserScalarRelationFilter, Prisma.UserWhereInput>
+  voiceConversions?: Prisma.VoiceConversionListRelationFilter
 }, "id">
 
 export type VoiceCloneOrderByWithAggregationInput = {
@@ -328,6 +371,10 @@ export type VoiceCloneOrderByWithAggregationInput = {
   sourceAudioUrl?: Prisma.SortOrder
   sourceAudioStored?: Prisma.SortOrder
   previewAudioUrl?: Prisma.SortOrderInput | Prisma.SortOrder
+  rvcModelUrl?: Prisma.SortOrderInput | Prisma.SortOrder
+  rvcModelStatus?: Prisma.SortOrderInput | Prisma.SortOrder
+  rvcRequestId?: Prisma.SortOrderInput | Prisma.SortOrder
+  rvcError?: Prisma.SortOrderInput | Prisma.SortOrder
   status?: Prisma.SortOrder
   error?: Prisma.SortOrderInput | Prisma.SortOrder
   requestId?: Prisma.SortOrderInput | Prisma.SortOrder
@@ -353,6 +400,10 @@ export type VoiceCloneScalarWhereWithAggregatesInput = {
   sourceAudioUrl?: Prisma.StringWithAggregatesFilter<"VoiceClone"> | string
   sourceAudioStored?: Prisma.BoolWithAggregatesFilter<"VoiceClone"> | boolean
   previewAudioUrl?: Prisma.StringNullableWithAggregatesFilter<"VoiceClone"> | string | null
+  rvcModelUrl?: Prisma.StringNullableWithAggregatesFilter<"VoiceClone"> | string | null
+  rvcModelStatus?: Prisma.StringNullableWithAggregatesFilter<"VoiceClone"> | string | null
+  rvcRequestId?: Prisma.StringNullableWithAggregatesFilter<"VoiceClone"> | string | null
+  rvcError?: Prisma.StringNullableWithAggregatesFilter<"VoiceClone"> | string | null
   status?: Prisma.StringWithAggregatesFilter<"VoiceClone"> | string
   error?: Prisma.StringNullableWithAggregatesFilter<"VoiceClone"> | string | null
   requestId?: Prisma.StringNullableWithAggregatesFilter<"VoiceClone"> | string | null
@@ -371,12 +422,17 @@ export type VoiceCloneCreateInput = {
   sourceAudioUrl: string
   sourceAudioStored?: boolean
   previewAudioUrl?: string | null
+  rvcModelUrl?: string | null
+  rvcModelStatus?: string | null
+  rvcRequestId?: string | null
+  rvcError?: string | null
   status?: string
   error?: string | null
   requestId?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
   user: Prisma.UserCreateNestedOneWithoutVoiceClonesInput
+  voiceConversions?: Prisma.VoiceConversionCreateNestedManyWithoutSourceVoiceCloneInput
 }
 
 export type VoiceCloneUncheckedCreateInput = {
@@ -391,11 +447,16 @@ export type VoiceCloneUncheckedCreateInput = {
   sourceAudioUrl: string
   sourceAudioStored?: boolean
   previewAudioUrl?: string | null
+  rvcModelUrl?: string | null
+  rvcModelStatus?: string | null
+  rvcRequestId?: string | null
+  rvcError?: string | null
   status?: string
   error?: string | null
   requestId?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
+  voiceConversions?: Prisma.VoiceConversionUncheckedCreateNestedManyWithoutSourceVoiceCloneInput
 }
 
 export type VoiceCloneUpdateInput = {
@@ -409,12 +470,17 @@ export type VoiceCloneUpdateInput = {
   sourceAudioUrl?: Prisma.StringFieldUpdateOperationsInput | string
   sourceAudioStored?: Prisma.BoolFieldUpdateOperationsInput | boolean
   previewAudioUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  rvcModelUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  rvcModelStatus?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  rvcRequestId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  rvcError?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   status?: Prisma.StringFieldUpdateOperationsInput | string
   error?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   requestId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   user?: Prisma.UserUpdateOneRequiredWithoutVoiceClonesNestedInput
+  voiceConversions?: Prisma.VoiceConversionUpdateManyWithoutSourceVoiceCloneNestedInput
 }
 
 export type VoiceCloneUncheckedUpdateInput = {
@@ -429,11 +495,16 @@ export type VoiceCloneUncheckedUpdateInput = {
   sourceAudioUrl?: Prisma.StringFieldUpdateOperationsInput | string
   sourceAudioStored?: Prisma.BoolFieldUpdateOperationsInput | boolean
   previewAudioUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  rvcModelUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  rvcModelStatus?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  rvcRequestId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  rvcError?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   status?: Prisma.StringFieldUpdateOperationsInput | string
   error?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   requestId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  voiceConversions?: Prisma.VoiceConversionUncheckedUpdateManyWithoutSourceVoiceCloneNestedInput
 }
 
 export type VoiceCloneCreateManyInput = {
@@ -448,6 +519,10 @@ export type VoiceCloneCreateManyInput = {
   sourceAudioUrl: string
   sourceAudioStored?: boolean
   previewAudioUrl?: string | null
+  rvcModelUrl?: string | null
+  rvcModelStatus?: string | null
+  rvcRequestId?: string | null
+  rvcError?: string | null
   status?: string
   error?: string | null
   requestId?: string | null
@@ -466,6 +541,10 @@ export type VoiceCloneUpdateManyMutationInput = {
   sourceAudioUrl?: Prisma.StringFieldUpdateOperationsInput | string
   sourceAudioStored?: Prisma.BoolFieldUpdateOperationsInput | boolean
   previewAudioUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  rvcModelUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  rvcModelStatus?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  rvcRequestId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  rvcError?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   status?: Prisma.StringFieldUpdateOperationsInput | string
   error?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   requestId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -485,6 +564,10 @@ export type VoiceCloneUncheckedUpdateManyInput = {
   sourceAudioUrl?: Prisma.StringFieldUpdateOperationsInput | string
   sourceAudioStored?: Prisma.BoolFieldUpdateOperationsInput | boolean
   previewAudioUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  rvcModelUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  rvcModelStatus?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  rvcRequestId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  rvcError?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   status?: Prisma.StringFieldUpdateOperationsInput | string
   error?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   requestId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -514,6 +597,10 @@ export type VoiceCloneCountOrderByAggregateInput = {
   sourceAudioUrl?: Prisma.SortOrder
   sourceAudioStored?: Prisma.SortOrder
   previewAudioUrl?: Prisma.SortOrder
+  rvcModelUrl?: Prisma.SortOrder
+  rvcModelStatus?: Prisma.SortOrder
+  rvcRequestId?: Prisma.SortOrder
+  rvcError?: Prisma.SortOrder
   status?: Prisma.SortOrder
   error?: Prisma.SortOrder
   requestId?: Prisma.SortOrder
@@ -533,6 +620,10 @@ export type VoiceCloneMaxOrderByAggregateInput = {
   sourceAudioUrl?: Prisma.SortOrder
   sourceAudioStored?: Prisma.SortOrder
   previewAudioUrl?: Prisma.SortOrder
+  rvcModelUrl?: Prisma.SortOrder
+  rvcModelStatus?: Prisma.SortOrder
+  rvcRequestId?: Prisma.SortOrder
+  rvcError?: Prisma.SortOrder
   status?: Prisma.SortOrder
   error?: Prisma.SortOrder
   requestId?: Prisma.SortOrder
@@ -552,11 +643,20 @@ export type VoiceCloneMinOrderByAggregateInput = {
   sourceAudioUrl?: Prisma.SortOrder
   sourceAudioStored?: Prisma.SortOrder
   previewAudioUrl?: Prisma.SortOrder
+  rvcModelUrl?: Prisma.SortOrder
+  rvcModelStatus?: Prisma.SortOrder
+  rvcRequestId?: Prisma.SortOrder
+  rvcError?: Prisma.SortOrder
   status?: Prisma.SortOrder
   error?: Prisma.SortOrder
   requestId?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
+}
+
+export type VoiceCloneNullableScalarRelationFilter = {
+  is?: Prisma.VoiceCloneWhereInput | null
+  isNot?: Prisma.VoiceCloneWhereInput | null
 }
 
 export type VoiceCloneCreateNestedManyWithoutUserInput = {
@@ -601,6 +701,22 @@ export type VoiceCloneUncheckedUpdateManyWithoutUserNestedInput = {
   deleteMany?: Prisma.VoiceCloneScalarWhereInput | Prisma.VoiceCloneScalarWhereInput[]
 }
 
+export type VoiceCloneCreateNestedOneWithoutVoiceConversionsInput = {
+  create?: Prisma.XOR<Prisma.VoiceCloneCreateWithoutVoiceConversionsInput, Prisma.VoiceCloneUncheckedCreateWithoutVoiceConversionsInput>
+  connectOrCreate?: Prisma.VoiceCloneCreateOrConnectWithoutVoiceConversionsInput
+  connect?: Prisma.VoiceCloneWhereUniqueInput
+}
+
+export type VoiceCloneUpdateOneWithoutVoiceConversionsNestedInput = {
+  create?: Prisma.XOR<Prisma.VoiceCloneCreateWithoutVoiceConversionsInput, Prisma.VoiceCloneUncheckedCreateWithoutVoiceConversionsInput>
+  connectOrCreate?: Prisma.VoiceCloneCreateOrConnectWithoutVoiceConversionsInput
+  upsert?: Prisma.VoiceCloneUpsertWithoutVoiceConversionsInput
+  disconnect?: Prisma.VoiceCloneWhereInput | boolean
+  delete?: Prisma.VoiceCloneWhereInput | boolean
+  connect?: Prisma.VoiceCloneWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.VoiceCloneUpdateToOneWithWhereWithoutVoiceConversionsInput, Prisma.VoiceCloneUpdateWithoutVoiceConversionsInput>, Prisma.VoiceCloneUncheckedUpdateWithoutVoiceConversionsInput>
+}
+
 export type VoiceCloneCreateWithoutUserInput = {
   id?: string
   name: string
@@ -612,11 +728,16 @@ export type VoiceCloneCreateWithoutUserInput = {
   sourceAudioUrl: string
   sourceAudioStored?: boolean
   previewAudioUrl?: string | null
+  rvcModelUrl?: string | null
+  rvcModelStatus?: string | null
+  rvcRequestId?: string | null
+  rvcError?: string | null
   status?: string
   error?: string | null
   requestId?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
+  voiceConversions?: Prisma.VoiceConversionCreateNestedManyWithoutSourceVoiceCloneInput
 }
 
 export type VoiceCloneUncheckedCreateWithoutUserInput = {
@@ -630,11 +751,16 @@ export type VoiceCloneUncheckedCreateWithoutUserInput = {
   sourceAudioUrl: string
   sourceAudioStored?: boolean
   previewAudioUrl?: string | null
+  rvcModelUrl?: string | null
+  rvcModelStatus?: string | null
+  rvcRequestId?: string | null
+  rvcError?: string | null
   status?: string
   error?: string | null
   requestId?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
+  voiceConversions?: Prisma.VoiceConversionUncheckedCreateNestedManyWithoutSourceVoiceCloneInput
 }
 
 export type VoiceCloneCreateOrConnectWithoutUserInput = {
@@ -677,11 +803,123 @@ export type VoiceCloneScalarWhereInput = {
   sourceAudioUrl?: Prisma.StringFilter<"VoiceClone"> | string
   sourceAudioStored?: Prisma.BoolFilter<"VoiceClone"> | boolean
   previewAudioUrl?: Prisma.StringNullableFilter<"VoiceClone"> | string | null
+  rvcModelUrl?: Prisma.StringNullableFilter<"VoiceClone"> | string | null
+  rvcModelStatus?: Prisma.StringNullableFilter<"VoiceClone"> | string | null
+  rvcRequestId?: Prisma.StringNullableFilter<"VoiceClone"> | string | null
+  rvcError?: Prisma.StringNullableFilter<"VoiceClone"> | string | null
   status?: Prisma.StringFilter<"VoiceClone"> | string
   error?: Prisma.StringNullableFilter<"VoiceClone"> | string | null
   requestId?: Prisma.StringNullableFilter<"VoiceClone"> | string | null
   createdAt?: Prisma.DateTimeFilter<"VoiceClone"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"VoiceClone"> | Date | string
+}
+
+export type VoiceCloneCreateWithoutVoiceConversionsInput = {
+  id?: string
+  name: string
+  description?: string | null
+  provider: string
+  minimaxVoiceId?: string | null
+  speakerEmbeddingUrl?: string | null
+  referenceText?: string | null
+  sourceAudioUrl: string
+  sourceAudioStored?: boolean
+  previewAudioUrl?: string | null
+  rvcModelUrl?: string | null
+  rvcModelStatus?: string | null
+  rvcRequestId?: string | null
+  rvcError?: string | null
+  status?: string
+  error?: string | null
+  requestId?: string | null
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  user: Prisma.UserCreateNestedOneWithoutVoiceClonesInput
+}
+
+export type VoiceCloneUncheckedCreateWithoutVoiceConversionsInput = {
+  id?: string
+  userId: string
+  name: string
+  description?: string | null
+  provider: string
+  minimaxVoiceId?: string | null
+  speakerEmbeddingUrl?: string | null
+  referenceText?: string | null
+  sourceAudioUrl: string
+  sourceAudioStored?: boolean
+  previewAudioUrl?: string | null
+  rvcModelUrl?: string | null
+  rvcModelStatus?: string | null
+  rvcRequestId?: string | null
+  rvcError?: string | null
+  status?: string
+  error?: string | null
+  requestId?: string | null
+  createdAt?: Date | string
+  updatedAt?: Date | string
+}
+
+export type VoiceCloneCreateOrConnectWithoutVoiceConversionsInput = {
+  where: Prisma.VoiceCloneWhereUniqueInput
+  create: Prisma.XOR<Prisma.VoiceCloneCreateWithoutVoiceConversionsInput, Prisma.VoiceCloneUncheckedCreateWithoutVoiceConversionsInput>
+}
+
+export type VoiceCloneUpsertWithoutVoiceConversionsInput = {
+  update: Prisma.XOR<Prisma.VoiceCloneUpdateWithoutVoiceConversionsInput, Prisma.VoiceCloneUncheckedUpdateWithoutVoiceConversionsInput>
+  create: Prisma.XOR<Prisma.VoiceCloneCreateWithoutVoiceConversionsInput, Prisma.VoiceCloneUncheckedCreateWithoutVoiceConversionsInput>
+  where?: Prisma.VoiceCloneWhereInput
+}
+
+export type VoiceCloneUpdateToOneWithWhereWithoutVoiceConversionsInput = {
+  where?: Prisma.VoiceCloneWhereInput
+  data: Prisma.XOR<Prisma.VoiceCloneUpdateWithoutVoiceConversionsInput, Prisma.VoiceCloneUncheckedUpdateWithoutVoiceConversionsInput>
+}
+
+export type VoiceCloneUpdateWithoutVoiceConversionsInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  provider?: Prisma.StringFieldUpdateOperationsInput | string
+  minimaxVoiceId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  speakerEmbeddingUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  referenceText?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  sourceAudioUrl?: Prisma.StringFieldUpdateOperationsInput | string
+  sourceAudioStored?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  previewAudioUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  rvcModelUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  rvcModelStatus?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  rvcRequestId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  rvcError?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  status?: Prisma.StringFieldUpdateOperationsInput | string
+  error?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  requestId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  user?: Prisma.UserUpdateOneRequiredWithoutVoiceClonesNestedInput
+}
+
+export type VoiceCloneUncheckedUpdateWithoutVoiceConversionsInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  userId?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  provider?: Prisma.StringFieldUpdateOperationsInput | string
+  minimaxVoiceId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  speakerEmbeddingUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  referenceText?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  sourceAudioUrl?: Prisma.StringFieldUpdateOperationsInput | string
+  sourceAudioStored?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  previewAudioUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  rvcModelUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  rvcModelStatus?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  rvcRequestId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  rvcError?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  status?: Prisma.StringFieldUpdateOperationsInput | string
+  error?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  requestId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
 
 export type VoiceCloneCreateManyUserInput = {
@@ -695,6 +933,10 @@ export type VoiceCloneCreateManyUserInput = {
   sourceAudioUrl: string
   sourceAudioStored?: boolean
   previewAudioUrl?: string | null
+  rvcModelUrl?: string | null
+  rvcModelStatus?: string | null
+  rvcRequestId?: string | null
+  rvcError?: string | null
   status?: string
   error?: string | null
   requestId?: string | null
@@ -713,11 +955,16 @@ export type VoiceCloneUpdateWithoutUserInput = {
   sourceAudioUrl?: Prisma.StringFieldUpdateOperationsInput | string
   sourceAudioStored?: Prisma.BoolFieldUpdateOperationsInput | boolean
   previewAudioUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  rvcModelUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  rvcModelStatus?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  rvcRequestId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  rvcError?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   status?: Prisma.StringFieldUpdateOperationsInput | string
   error?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   requestId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  voiceConversions?: Prisma.VoiceConversionUpdateManyWithoutSourceVoiceCloneNestedInput
 }
 
 export type VoiceCloneUncheckedUpdateWithoutUserInput = {
@@ -731,11 +978,16 @@ export type VoiceCloneUncheckedUpdateWithoutUserInput = {
   sourceAudioUrl?: Prisma.StringFieldUpdateOperationsInput | string
   sourceAudioStored?: Prisma.BoolFieldUpdateOperationsInput | boolean
   previewAudioUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  rvcModelUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  rvcModelStatus?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  rvcRequestId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  rvcError?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   status?: Prisma.StringFieldUpdateOperationsInput | string
   error?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   requestId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  voiceConversions?: Prisma.VoiceConversionUncheckedUpdateManyWithoutSourceVoiceCloneNestedInput
 }
 
 export type VoiceCloneUncheckedUpdateManyWithoutUserInput = {
@@ -749,6 +1001,10 @@ export type VoiceCloneUncheckedUpdateManyWithoutUserInput = {
   sourceAudioUrl?: Prisma.StringFieldUpdateOperationsInput | string
   sourceAudioStored?: Prisma.BoolFieldUpdateOperationsInput | boolean
   previewAudioUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  rvcModelUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  rvcModelStatus?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  rvcRequestId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  rvcError?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   status?: Prisma.StringFieldUpdateOperationsInput | string
   error?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   requestId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -756,6 +1012,35 @@ export type VoiceCloneUncheckedUpdateManyWithoutUserInput = {
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
 
+
+/**
+ * Count Type VoiceCloneCountOutputType
+ */
+
+export type VoiceCloneCountOutputType = {
+  voiceConversions: number
+}
+
+export type VoiceCloneCountOutputTypeSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  voiceConversions?: boolean | VoiceCloneCountOutputTypeCountVoiceConversionsArgs
+}
+
+/**
+ * VoiceCloneCountOutputType without action
+ */
+export type VoiceCloneCountOutputTypeDefaultArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the VoiceCloneCountOutputType
+   */
+  select?: Prisma.VoiceCloneCountOutputTypeSelect<ExtArgs> | null
+}
+
+/**
+ * VoiceCloneCountOutputType without action
+ */
+export type VoiceCloneCountOutputTypeCountVoiceConversionsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  where?: Prisma.VoiceConversionWhereInput
+}
 
 
 export type VoiceCloneSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
@@ -770,12 +1055,18 @@ export type VoiceCloneSelect<ExtArgs extends runtime.Types.Extensions.InternalAr
   sourceAudioUrl?: boolean
   sourceAudioStored?: boolean
   previewAudioUrl?: boolean
+  rvcModelUrl?: boolean
+  rvcModelStatus?: boolean
+  rvcRequestId?: boolean
+  rvcError?: boolean
   status?: boolean
   error?: boolean
   requestId?: boolean
   createdAt?: boolean
   updatedAt?: boolean
   user?: boolean | Prisma.UserDefaultArgs<ExtArgs>
+  voiceConversions?: boolean | Prisma.VoiceClone$voiceConversionsArgs<ExtArgs>
+  _count?: boolean | Prisma.VoiceCloneCountOutputTypeDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["voiceClone"]>
 
 export type VoiceCloneSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
@@ -790,6 +1081,10 @@ export type VoiceCloneSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Ex
   sourceAudioUrl?: boolean
   sourceAudioStored?: boolean
   previewAudioUrl?: boolean
+  rvcModelUrl?: boolean
+  rvcModelStatus?: boolean
+  rvcRequestId?: boolean
+  rvcError?: boolean
   status?: boolean
   error?: boolean
   requestId?: boolean
@@ -810,6 +1105,10 @@ export type VoiceCloneSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Ex
   sourceAudioUrl?: boolean
   sourceAudioStored?: boolean
   previewAudioUrl?: boolean
+  rvcModelUrl?: boolean
+  rvcModelStatus?: boolean
+  rvcRequestId?: boolean
+  rvcError?: boolean
   status?: boolean
   error?: boolean
   requestId?: boolean
@@ -830,6 +1129,10 @@ export type VoiceCloneSelectScalar = {
   sourceAudioUrl?: boolean
   sourceAudioStored?: boolean
   previewAudioUrl?: boolean
+  rvcModelUrl?: boolean
+  rvcModelStatus?: boolean
+  rvcRequestId?: boolean
+  rvcError?: boolean
   status?: boolean
   error?: boolean
   requestId?: boolean
@@ -837,9 +1140,11 @@ export type VoiceCloneSelectScalar = {
   updatedAt?: boolean
 }
 
-export type VoiceCloneOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "userId" | "name" | "description" | "provider" | "minimaxVoiceId" | "speakerEmbeddingUrl" | "referenceText" | "sourceAudioUrl" | "sourceAudioStored" | "previewAudioUrl" | "status" | "error" | "requestId" | "createdAt" | "updatedAt", ExtArgs["result"]["voiceClone"]>
+export type VoiceCloneOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "userId" | "name" | "description" | "provider" | "minimaxVoiceId" | "speakerEmbeddingUrl" | "referenceText" | "sourceAudioUrl" | "sourceAudioStored" | "previewAudioUrl" | "rvcModelUrl" | "rvcModelStatus" | "rvcRequestId" | "rvcError" | "status" | "error" | "requestId" | "createdAt" | "updatedAt", ExtArgs["result"]["voiceClone"]>
 export type VoiceCloneInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   user?: boolean | Prisma.UserDefaultArgs<ExtArgs>
+  voiceConversions?: boolean | Prisma.VoiceClone$voiceConversionsArgs<ExtArgs>
+  _count?: boolean | Prisma.VoiceCloneCountOutputTypeDefaultArgs<ExtArgs>
 }
 export type VoiceCloneIncludeCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   user?: boolean | Prisma.UserDefaultArgs<ExtArgs>
@@ -852,6 +1157,7 @@ export type $VoiceClonePayload<ExtArgs extends runtime.Types.Extensions.Internal
   name: "VoiceClone"
   objects: {
     user: Prisma.$UserPayload<ExtArgs>
+    voiceConversions: Prisma.$VoiceConversionPayload<ExtArgs>[]
   }
   scalars: runtime.Types.Extensions.GetPayloadResult<{
     id: string
@@ -865,6 +1171,10 @@ export type $VoiceClonePayload<ExtArgs extends runtime.Types.Extensions.Internal
     sourceAudioUrl: string
     sourceAudioStored: boolean
     previewAudioUrl: string | null
+    rvcModelUrl: string | null
+    rvcModelStatus: string | null
+    rvcRequestId: string | null
+    rvcError: string | null
     status: string
     error: string | null
     requestId: string | null
@@ -1265,6 +1575,7 @@ readonly fields: VoiceCloneFieldRefs;
 export interface Prisma__VoiceCloneClient<T, Null = never, ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
   readonly [Symbol.toStringTag]: "PrismaPromise"
   user<T extends Prisma.UserDefaultArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.UserDefaultArgs<ExtArgs>>): Prisma.Prisma__UserClient<runtime.Types.Result.GetResult<Prisma.$UserPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
+  voiceConversions<T extends Prisma.VoiceClone$voiceConversionsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.VoiceClone$voiceConversionsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$VoiceConversionPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   /**
    * Attaches callbacks for the resolution and/or rejection of the Promise.
    * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -1305,6 +1616,10 @@ export interface VoiceCloneFieldRefs {
   readonly sourceAudioUrl: Prisma.FieldRef<"VoiceClone", 'String'>
   readonly sourceAudioStored: Prisma.FieldRef<"VoiceClone", 'Boolean'>
   readonly previewAudioUrl: Prisma.FieldRef<"VoiceClone", 'String'>
+  readonly rvcModelUrl: Prisma.FieldRef<"VoiceClone", 'String'>
+  readonly rvcModelStatus: Prisma.FieldRef<"VoiceClone", 'String'>
+  readonly rvcRequestId: Prisma.FieldRef<"VoiceClone", 'String'>
+  readonly rvcError: Prisma.FieldRef<"VoiceClone", 'String'>
   readonly status: Prisma.FieldRef<"VoiceClone", 'String'>
   readonly error: Prisma.FieldRef<"VoiceClone", 'String'>
   readonly requestId: Prisma.FieldRef<"VoiceClone", 'String'>
@@ -1701,6 +2016,30 @@ export type VoiceCloneDeleteManyArgs<ExtArgs extends runtime.Types.Extensions.In
    * Limit how many VoiceClones to delete.
    */
   limit?: number
+}
+
+/**
+ * VoiceClone.voiceConversions
+ */
+export type VoiceClone$voiceConversionsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the VoiceConversion
+   */
+  select?: Prisma.VoiceConversionSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the VoiceConversion
+   */
+  omit?: Prisma.VoiceConversionOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.VoiceConversionInclude<ExtArgs> | null
+  where?: Prisma.VoiceConversionWhereInput
+  orderBy?: Prisma.VoiceConversionOrderByWithRelationInput | Prisma.VoiceConversionOrderByWithRelationInput[]
+  cursor?: Prisma.VoiceConversionWhereUniqueInput
+  take?: number
+  skip?: number
+  distinct?: Prisma.VoiceConversionScalarFieldEnum | Prisma.VoiceConversionScalarFieldEnum[]
 }
 
 /**

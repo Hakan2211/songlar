@@ -3,12 +3,14 @@
 import { useState } from 'react'
 import {
   AlertCircle,
+  Dumbbell,
   Loader2,
   Mic,
   MoreVertical,
   Pause,
   Play,
   Trash2,
+  Wand2,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -39,13 +41,21 @@ export interface VoiceClone {
   previewAudioUrl: string | null
   sourceAudioUrl: string
   error: string | null
+  // RVC training fields
+  rvcModelUrl: string | null
+  rvcModelStatus: string | null
+  rvcRequestId: string | null
+  rvcError: string | null
   createdAt: string | Date
 }
 
 interface VoiceCloneCardProps {
   voiceClone: VoiceClone
   onDelete: (id: string) => void
+  onTrainRvc?: (id: string) => void
+  onConvertTrack?: (id: string) => void
   isDeleting?: boolean
+  isTraining?: boolean
 }
 
 function getProviderDisplayName(provider: string): string {
@@ -84,9 +94,13 @@ function formatDate(dateStr: string | Date): string {
 export function VoiceCloneCard({
   voiceClone,
   onDelete,
+  onTrainRvc,
+  onConvertTrack,
   isDeleting = false,
+  isTraining = false,
 }: VoiceCloneCardProps) {
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
+  const [isTrainConfirmOpen, setIsTrainConfirmOpen] = useState(false)
   const [isPlaying, setIsPlaying] = useState(false)
   const [audio, setAudio] = useState<HTMLAudioElement | null>(null)
 
@@ -204,7 +218,28 @@ export function VoiceCloneCard({
                   )}
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-36">
+              <DropdownMenuContent align="end" className="w-48">
+                {/* Train for Singing - shown when clone is ready and no RVC model yet */}
+                {isReady && !voiceClone.rvcModelStatus && onTrainRvc && (
+                  <DropdownMenuItem
+                    onClick={() => setIsTrainConfirmOpen(true)}
+                    disabled={isTraining}
+                  >
+                    <Dumbbell className="h-4 w-4" />
+                    Train for Singing
+                  </DropdownMenuItem>
+                )}
+                {/* Convert Track - shown when RVC model is trained and ready */}
+                {isReady &&
+                  voiceClone.rvcModelStatus === 'ready' &&
+                  onConvertTrack && (
+                    <DropdownMenuItem
+                      onClick={() => onConvertTrack(voiceClone.id)}
+                    >
+                      <Wand2 className="h-4 w-4" />
+                      Convert Track
+                    </DropdownMenuItem>
+                  )}
                 <DropdownMenuItem
                   variant="destructive"
                   onClick={() => setIsDeleteDialogOpen(true)}
@@ -233,6 +268,29 @@ export function VoiceCloneCard({
             <span>Cloning...</span>
           </div>
         )}
+
+        {/* RVC Training Status */}
+        {voiceClone.rvcModelStatus === 'training' && (
+          <div className="flex items-center gap-2 text-xs text-amber-600 dark:text-amber-400">
+            <Loader2 className="h-3 w-3 animate-spin" />
+            <span>Training singing voice model...</span>
+          </div>
+        )}
+        {voiceClone.rvcModelStatus === 'ready' && (
+          <div className="flex items-center gap-1.5">
+            <Badge
+              variant="outline"
+              className="text-[10px] bg-violet-500/10 text-violet-600 border-violet-500/20"
+            >
+              Singing Ready
+            </Badge>
+          </div>
+        )}
+        {voiceClone.rvcModelStatus === 'failed' && voiceClone.rvcError && (
+          <div className="text-xs text-red-500 bg-red-500/10 p-2 rounded-lg">
+            Training failed: {voiceClone.rvcError}
+          </div>
+        )}
       </div>
 
       {/* Delete Dialog */}
@@ -254,6 +312,52 @@ export function VoiceCloneCard({
             </Button>
             <Button variant="destructive" onClick={handleDelete}>
               Delete
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Train RVC Confirmation Dialog */}
+      <Dialog open={isTrainConfirmOpen} onOpenChange={setIsTrainConfirmOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Train Singing Voice Model</DialogTitle>
+            <DialogDescription>
+              This will train an RVC v2 model from &quot;{voiceClone.name}
+              &quot; so you can convert vocals in your music tracks.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="rounded-lg border bg-amber-50 dark:bg-amber-950/50 border-amber-200 dark:border-amber-800 p-3 text-sm">
+            <p className="font-medium text-amber-800 dark:text-amber-200">
+              Cost Estimate
+            </p>
+            <ul className="mt-1.5 space-y-1 text-amber-700 dark:text-amber-300 text-xs">
+              <li>
+                Replicate charges ~$0.73 per training run (~13 minutes on A40
+                GPU)
+              </li>
+              <li>Training runs 50 epochs at 48kHz sample rate</li>
+              <li>
+                The trained model can then be used for unlimited vocal
+                conversions
+              </li>
+            </ul>
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setIsTrainConfirmOpen(false)}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={() => {
+                setIsTrainConfirmOpen(false)
+                onTrainRvc?.(voiceClone.id)
+              }}
+            >
+              <Dumbbell className="mr-2 h-4 w-4" />
+              Start Training
             </Button>
           </DialogFooter>
         </DialogContent>

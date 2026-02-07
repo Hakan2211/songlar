@@ -253,10 +253,19 @@ model VoiceClone {
   // Preview audio (optional TTS preview generated during cloning)
   previewAudioUrl String?
 
+  // RVC Training (for singing voice conversion)
+  rvcModelUrl    String? // Trained RVC model .zip URL (from replicate/train-rvc-model)
+  rvcModelStatus String? // "training", "ready", "failed" (null = not trained)
+  rvcRequestId   String? // Replicate prediction ID for RVC training
+  rvcError       String? // Error from RVC training
+
   // Job status
   status    String  @default("pending") // "pending", "processing", "ready", "failed"
   error     String? // Error message if failed
   requestId String? // External provider request ID
+
+  // Relations
+  voiceConversions VoiceConversion[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -278,11 +287,13 @@ model VoiceConversion {
   // Provider info
   provider String // "amphion-svc" | "rvc-v2"
 
-  // Source audio (from completed music generation)
+  // Source audio (from completed music generation or voice clone)
   sourceAudioUrl     String           // Audio URL to convert
-  sourceType         String           // "generation" (only completed generations allowed)
+  sourceType         String           // "generation" | "voice-clone"
   sourceGenerationId String?          // Link to MusicGeneration
   sourceGeneration   MusicGeneration? @relation(fields: [sourceGenerationId], references: [id])
+  sourceVoiceCloneId String?          // Link to VoiceClone (when using trained RVC model)
+  sourceVoiceClone   VoiceClone?      @relation(fields: [sourceVoiceCloneId], references: [id])
 
   // Target voice settings
   // For Amphion SVC: preset singer name
@@ -317,5 +328,6 @@ model VoiceConversion {
   @@index([userId])
   @@index([status])
   @@index([sourceGenerationId])
+  @@index([sourceVoiceCloneId])
   @@map("voice_conversion")
 }

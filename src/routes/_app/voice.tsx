@@ -1,9 +1,11 @@
 import { Link, createFileRoute } from '@tanstack/react-router'
 import { useMutation, useQuery } from '@tanstack/react-query'
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import {
   AlertCircle,
+  CheckCircle2,
   Cloud,
+  Globe,
   Key,
   Loader2,
   Mic,
@@ -41,6 +43,8 @@ import {
   VoiceCloneCardSkeleton,
 } from '@/components/voice-clone-card'
 import { LazyWaveformPlayer } from '@/components/waveform-player'
+import { AudioRecorder } from '@/components/audio-recorder'
+import { ConvertWithCloneDialog } from '@/components/convert-with-clone-dialog'
 import { cn } from '@/lib/utils'
 
 export const Route = createFileRoute('/_app/voice')({
@@ -62,6 +66,15 @@ function VoicePage() {
   const [cloneAudioUrl, setCloneAudioUrl] = useState('')
   const [cloneReferenceText, setCloneReferenceText] = useState('')
 
+  // Audio source mode: 'url' for pasting a URL, 'record' for microphone recording
+  const [audioSourceMode, setAudioSourceMode] = useState<'url' | 'record'>(
+    'url',
+  )
+  const [isUploading, setIsUploading] = useState(false)
+  const [uploadedRecordingUrl, setUploadedRecordingUrl] = useState<
+    string | null
+  >(null)
+
   // Processing clones that need polling
   const [processingCloneIds, setProcessingCloneIds] = useState<Set<string>>(
     new Set(),
@@ -71,6 +84,16 @@ function VoicePage() {
   const [processingConversionIds, setProcessingConversionIds] = useState<
     Set<string>
   >(new Set())
+
+  // RVC training state
+  const [rvcTrainingCloneIds, setRvcTrainingCloneIds] = useState<Set<string>>(
+    new Set(),
+  )
+
+  // Convert Track dialog state
+  const [convertDialogOpen, setConvertDialogOpen] = useState(false)
+  const [convertDialogCloneId, setConvertDialogCloneId] = useState('')
+  const [convertDialogCloneName, setConvertDialogCloneName] = useState('')
 
   // Fetch API key status
   const { data: apiKeyStatuses } = useQuery({
@@ -121,7 +144,7 @@ function VoicePage() {
           name: cloneName,
           description: cloneDescription || undefined,
           provider: cloneProvider,
-          audioUrl: cloneAudioUrl,
+          audioUrl: effectiveAudioUrl,
           referenceText:
             cloneProvider === 'qwen' ? cloneReferenceText : undefined,
         },
@@ -170,13 +193,99 @@ function VoicePage() {
     },
   })
 
+  // Train RVC model mutation
+  const trainRvcMutation = useMutation({
+    mutationFn: async (voiceCloneId: string) => {
+      const { trainRvcModelFn } = await import('@/server/voice.fn')
+      return trainRvcModelFn({ data: { voiceCloneId } })
+    },
+    onSuccess: (result) => {
+      toast.success('RVC training started! This takes about 13 minutes.')
+      refetchClones()
+      setRvcTrainingCloneIds((prev) => new Set(prev).add(result.id))
+    },
+    onError: (error: Error) => {
+      toast.error(error.message || 'Failed to start RVC training')
+    },
+  })
+
+  // Handle Train for Singing action
+  const handleTrainRvc = useCallback(
+    (voiceCloneId: string) => {
+      trainRvcMutation.mutate(voiceCloneId)
+    },
+    [trainRvcMutation],
+  )
+
+  // Handle Convert Track action — open the dialog
+  const handleConvertTrack = useCallback(
+    (voiceCloneId: string) => {
+      const clone = voiceClones?.find((c) => c.id === voiceCloneId)
+      if (!clone) return
+      setConvertDialogCloneId(voiceCloneId)
+      setConvertDialogCloneName(clone.name)
+      setConvertDialogOpen(true)
+    },
+    [voiceClones],
+  )
+
   const resetCloneForm = () => {
     setCloneName('')
     setCloneDescription('')
     setCloneProvider('minimax')
     setCloneAudioUrl('')
     setCloneReferenceText('')
+    setAudioSourceMode('url')
+    setIsUploading(false)
+    setUploadedRecordingUrl(null)
   }
+
+  // Handle recording completion: upload the audio blob to get a URL
+  const handleRecordingComplete = useCallback(async (blob: Blob) => {
+    setIsUploading(true)
+    setUploadedRecordingUrl(null)
+
+    try {
+      // Convert blob to base64
+      const arrayBuffer = await blob.arrayBuffer()
+      const base64 = btoa(
+        new Uint8Array(arrayBuffer).reduce(
+          (data, byte) => data + String.fromCharCode(byte),
+          '',
+        ),
+      )
+
+      const { uploadRecordedAudioFn } = await import('@/server/voice.fn')
+      const result = await uploadRecordedAudioFn({
+        data: {
+          audioBase64: base64,
+          filename: `recording-${Date.now()}.webm`,
+          contentType: blob.type || 'audio/webm',
+        },
+      })
+
+      setUploadedRecordingUrl(result.url)
+      setCloneAudioUrl(result.url)
+      toast.success(
+        `Recording uploaded to ${result.storage === 'bunny' ? 'Bunny CDN' : 'fal.ai storage'}`,
+      )
+    } catch (err) {
+      toast.error(
+        err instanceof Error ? err.message : 'Failed to upload recording',
+      )
+    } finally {
+      setIsUploading(false)
+    }
+  }, [])
+
+  // Handle recording discard
+  const handleRecordingDiscard = useCallback(() => {
+    setUploadedRecordingUrl(null)
+    // Only clear the audio URL if it was set from a recording
+    if (audioSourceMode === 'record') {
+      setCloneAudioUrl('')
+    }
+  }, [audioSourceMode])
 
   // Poll processing clones
   useEffect(() => {
@@ -284,7 +393,70 @@ function VoicePage() {
     }
   }, [voiceClones])
 
-  const canCreateClone = hasFalKey && cloneName.trim() && cloneAudioUrl.trim()
+  // Track RVC training clones
+  useEffect(() => {
+    if (!voiceClones) return
+
+    const training = voiceClones
+      .filter((c) => c.rvcModelStatus === 'training')
+      .map((c) => c.id)
+
+    if (training.length > 0) {
+      setRvcTrainingCloneIds((prev) => {
+        const next = new Set(prev)
+        training.forEach((id) => next.add(id))
+        return next
+      })
+    }
+  }, [voiceClones])
+
+  // Poll RVC training status
+  useEffect(() => {
+    if (rvcTrainingCloneIds.size === 0) return
+
+    const pollInterval = setInterval(async () => {
+      const { checkRvcTrainingStatusFn } = await import('@/server/voice.fn')
+
+      for (const cloneId of rvcTrainingCloneIds) {
+        try {
+          const result = await checkRvcTrainingStatusFn({
+            data: { voiceCloneId: cloneId },
+          })
+
+          if (
+            result.rvcModelStatus === 'ready' ||
+            result.rvcModelStatus === 'failed'
+          ) {
+            setRvcTrainingCloneIds((prev) => {
+              const next = new Set(prev)
+              next.delete(cloneId)
+              return next
+            })
+            refetchClones()
+
+            if (result.rvcModelStatus === 'ready') {
+              toast.success(
+                'Singing voice model is ready! You can now convert tracks.',
+              )
+            } else {
+              toast.error(`RVC training failed: ${result.rvcError}`)
+            }
+          }
+        } catch (err) {
+          console.error('Error polling RVC training status:', err)
+        }
+      }
+    }, 5000) // Poll every 5 seconds (training takes ~13 minutes)
+
+    return () => clearInterval(pollInterval)
+  }, [rvcTrainingCloneIds, refetchClones])
+
+  // Determine the effective audio URL based on the selected source mode
+  const effectiveAudioUrl =
+    audioSourceMode === 'record' ? uploadedRecordingUrl || '' : cloneAudioUrl
+
+  const canCreateClone =
+    hasFalKey && cloneName.trim() && effectiveAudioUrl.trim() && !isUploading
 
   return (
     <div className="space-y-6">
@@ -364,16 +536,77 @@ function VoicePage() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="clone-audio">Audio URL</Label>
-                <Input
-                  id="clone-audio"
-                  placeholder="https://example.com/voice-sample.mp3"
-                  value={cloneAudioUrl}
-                  onChange={(e) => setCloneAudioUrl(e.target.value)}
-                />
-                <p className="text-xs text-muted-foreground">
-                  Direct URL to an audio file (MP3, WAV, etc.)
-                </p>
+                <Label>Audio Source</Label>
+                {/* Audio source mode tabs */}
+                <div className="flex rounded-lg border bg-muted p-1 gap-1">
+                  <button
+                    type="button"
+                    className={cn(
+                      'flex-1 flex items-center justify-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium transition-colors',
+                      audioSourceMode === 'url'
+                        ? 'bg-background text-foreground shadow-sm'
+                        : 'text-muted-foreground hover:text-foreground',
+                    )}
+                    onClick={() => setAudioSourceMode('url')}
+                  >
+                    <Globe className="h-3.5 w-3.5" />
+                    Paste URL
+                  </button>
+                  <button
+                    type="button"
+                    className={cn(
+                      'flex-1 flex items-center justify-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium transition-colors',
+                      audioSourceMode === 'record'
+                        ? 'bg-background text-foreground shadow-sm'
+                        : 'text-muted-foreground hover:text-foreground',
+                    )}
+                    onClick={() => setAudioSourceMode('record')}
+                  >
+                    <Mic className="h-3.5 w-3.5" />
+                    Record Microphone
+                  </button>
+                </div>
+
+                {/* Paste URL mode */}
+                {audioSourceMode === 'url' && (
+                  <div className="space-y-1.5">
+                    <Input
+                      id="clone-audio"
+                      placeholder="https://example.com/voice-sample.mp3"
+                      value={cloneAudioUrl}
+                      onChange={(e) => setCloneAudioUrl(e.target.value)}
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Direct URL to an audio file (MP3, WAV, etc.)
+                    </p>
+                  </div>
+                )}
+
+                {/* Record Microphone mode */}
+                {audioSourceMode === 'record' && (
+                  <div className="space-y-2">
+                    <AudioRecorder
+                      onRecordingComplete={handleRecordingComplete}
+                      onRecordingDiscard={handleRecordingDiscard}
+                      disabled={isUploading || createCloneMutation.isPending}
+                      minDuration={10}
+                      maxDuration={120}
+                    />
+                    {/* Upload status */}
+                    {isUploading && (
+                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                        <Loader2 className="h-3 w-3 animate-spin" />
+                        Uploading recording...
+                      </div>
+                    )}
+                    {uploadedRecordingUrl && !isUploading && (
+                      <div className="flex items-center gap-2 text-xs text-emerald-600 dark:text-emerald-400">
+                        <CheckCircle2 className="h-3 w-3" />
+                        Recording uploaded and ready
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
 
               {cloneProvider === 'qwen' && (
@@ -509,7 +742,12 @@ function VoicePage() {
                   key={clone.id}
                   voiceClone={clone}
                   onDelete={(id) => deleteCloneMutation.mutate(id)}
+                  onTrainRvc={hasReplicateKey ? handleTrainRvc : undefined}
+                  onConvertTrack={
+                    hasReplicateKey ? handleConvertTrack : undefined
+                  }
                   isDeleting={deleteCloneMutation.isPending}
+                  isTraining={trainRvcMutation.isPending}
                 />
               ))}
             </div>
@@ -575,6 +813,14 @@ function VoicePage() {
           )}
         </TabsContent>
       </Tabs>
+
+      {/* Convert Track with Clone Dialog */}
+      <ConvertWithCloneDialog
+        open={convertDialogOpen}
+        onOpenChange={setConvertDialogOpen}
+        voiceCloneId={convertDialogCloneId}
+        voiceCloneName={convertDialogCloneName}
+      />
     </div>
   )
 }

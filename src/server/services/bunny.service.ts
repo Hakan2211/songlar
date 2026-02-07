@@ -209,6 +209,63 @@ export async function deleteAudioFromBunny(
 }
 
 /**
+ * Upload raw audio buffer to Bunny.net Storage and return CDN URL
+ *
+ * Unlike uploadAudioToBunny which downloads from a source URL,
+ * this function accepts raw binary data directly (e.g., from a microphone recording).
+ */
+export async function uploadAudioBufferToBunny(
+  settings: BunnySettings,
+  audioBuffer: ArrayBuffer,
+  filename: string,
+  contentType: string = 'audio/webm',
+): Promise<UploadResult> {
+  if (MOCK_BUNNY) {
+    return mockUploadAudio(filename)
+  }
+
+  try {
+    const uploadUrl = `${BUNNY_STORAGE_BASE}/${settings.storageZone}/${filename}`
+    console.log(
+      '[Bunny] Uploading buffer to:',
+      uploadUrl,
+      'size:',
+      audioBuffer.byteLength,
+    )
+
+    const uploadResponse = await fetch(uploadUrl, {
+      method: 'PUT',
+      headers: {
+        AccessKey: settings.apiKey,
+        'Content-Type': contentType,
+      },
+      body: audioBuffer,
+    })
+
+    if (!uploadResponse.ok) {
+      const errorText = await uploadResponse.text()
+      throw new Error(
+        `Bunny upload failed: ${uploadResponse.status} ${errorText}`,
+      )
+    }
+
+    const cdnUrl = getBunnyCdnUrl(settings.pullZone, filename)
+    console.log('[Bunny] Buffer upload successful, CDN URL:', cdnUrl)
+
+    return {
+      success: true,
+      cdnUrl,
+    }
+  } catch (error) {
+    console.error('[Bunny] Buffer upload error:', error)
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Unknown upload error',
+    }
+  }
+}
+
+/**
  * Check if Bunny service is in mock mode
  */
 export function isBunnyMockMode(): boolean {
