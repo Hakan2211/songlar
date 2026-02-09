@@ -25,7 +25,9 @@ import { Readable } from 'stream'
 const MOCK_RVC_TRAINING = process.env.MOCK_RVC_TRAINING === 'true'
 
 // Replicate model for RVC training
-const RVC_TRAINING_MODEL = 'replicate/train-rvc-model' as const
+// Note: Must use full version hash for POST /v1/predictions endpoint
+const RVC_TRAINING_MODEL_VERSION =
+  'replicate/train-rvc-model:0397d5e28c9b54665e1e5d29d5cf4f722a7b89ec20e9dbf31487235305b1a101' as const
 
 // Default training parameters
 const DEFAULT_TRAINING_OPTIONS = {
@@ -33,7 +35,7 @@ const DEFAULT_TRAINING_OPTIONS = {
   version: 'v2',
   f0method: 'rmvpe_gpu',
   epoch: 50,
-  batch_size: 7,
+  batch_size: '7',
 } as const
 
 // ============================================================================
@@ -134,28 +136,6 @@ export async function createAudioZipBuffer(audioUrl: string): Promise<Buffer> {
   const audioBuffer = Buffer.from(await response.arrayBuffer())
   console.log('[RVC Training] Downloaded audio, size:', audioBuffer.byteLength)
 
-  // Determine file extension from content type
-  const contentType = response.headers.get('content-type') || ''
-  const extMap: Record<string, string> = {
-    'audio/mpeg': 'mp3',
-    'audio/mp3': 'mp3',
-    'audio/wav': 'wav',
-    'audio/x-wav': 'wav',
-    'audio/webm': 'webm',
-    'audio/ogg': 'ogg',
-    'audio/mp4': 'mp4',
-    'audio/m4a': 'm4a',
-    'audio/flac': 'flac',
-  }
-
-  let ext = 'mp3' // default
-  for (const [mime, extension] of Object.entries(extMap)) {
-    if (contentType.includes(mime)) {
-      ext = extension
-      break
-    }
-  }
-
   // Create .zip with the audio file
   return new Promise<Buffer>((resolve, reject) => {
     const chunks: Buffer[] = []
@@ -176,9 +156,11 @@ export async function createAudioZipBuffer(audioUrl: string): Promise<Buffer> {
       reject(new Error(`Failed to create zip: ${err.message}`))
     })
 
-    // Add the audio file to the zip
+    // Add the audio file to the zip in the structure expected by the RVC training model:
+    // dataset/<rvc_name>/split_<i>.wav
+    const rvcName = 'voice-clone'
     const audioStream = Readable.from(audioBuffer)
-    archive.append(audioStream, { name: `voice-sample.${ext}` })
+    archive.append(audioStream, { name: `dataset/${rvcName}/split_0.wav` })
 
     archive.finalize()
   })
@@ -209,17 +191,17 @@ async function replicateSubmitTraining(
     version: input.version || DEFAULT_TRAINING_OPTIONS.version,
     f0method: input.f0method || DEFAULT_TRAINING_OPTIONS.f0method,
     epoch: input.epoch || DEFAULT_TRAINING_OPTIONS.epoch,
-    batch_size: input.batchSize || DEFAULT_TRAINING_OPTIONS.batch_size,
+    batch_size: String(input.batchSize || DEFAULT_TRAINING_OPTIONS.batch_size),
   }
 
   console.log('[RVC Training] Submitting to Replicate:', {
-    model: RVC_TRAINING_MODEL,
+    version: RVC_TRAINING_MODEL_VERSION,
     dataset_zip: input.datasetZipUrl,
     epoch: replicateInput.epoch,
   })
 
   const prediction = await replicate.predictions.create({
-    model: RVC_TRAINING_MODEL,
+    version: RVC_TRAINING_MODEL_VERSION,
     input: replicateInput,
   })
 

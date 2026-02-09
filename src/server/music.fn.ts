@@ -325,7 +325,17 @@ export const generateMusicFn = createServerFn({ method: 'POST' })
             originalAudioUrl = result.audioUrl
             audioUrl = uploadResult.cdnUrl
             audioStored = true
+          } else {
+            console.error(
+              '[MusicGeneration] CDN upload failed:',
+              uploadResult.error,
+              '- audio will use temporary provider URL',
+            )
           }
+        } else if (!bunnySettings) {
+          console.warn(
+            '[MusicGeneration] No Bunny CDN settings - audio will use temporary provider URL',
+          )
         }
 
         // Update as completed
@@ -623,6 +633,25 @@ export const listGenerationsFn = createServerFn({ method: 'GET' })
         orderBy: { createdAt: 'desc' },
         take: limit,
         skip: offset,
+        include: {
+          voiceConversions: {
+            orderBy: { createdAt: 'desc' },
+            select: {
+              id: true,
+              status: true,
+              provider: true,
+              outputAudioUrl: true,
+              outputAudioStored: true,
+              targetSinger: true,
+              rvcModelName: true,
+              pitchShift: true,
+              title: true,
+              error: true,
+              progress: true,
+              createdAt: true,
+            },
+          },
+        },
       }),
       prisma.musicGeneration.count({ where }),
     ])

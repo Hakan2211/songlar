@@ -91,7 +91,11 @@ async function bunnyUploadAudio(
     }
 
     const audioBuffer = await audioResponse.arrayBuffer()
-    console.log('[Bunny] Downloaded audio, size:', audioBuffer.byteLength)
+    console.log('[Bunny] Downloaded audio:', {
+      status: audioResponse.status,
+      size: audioBuffer.byteLength,
+      contentType: audioResponse.headers.get('content-type'),
+    })
 
     // 2. Upload to Bunny.net Storage
     const uploadUrl = `${BUNNY_STORAGE_BASE}/${settings.storageZone}/${filename}`
@@ -105,6 +109,12 @@ async function bunnyUploadAudio(
       },
       body: audioBuffer,
     })
+
+    console.log(
+      '[Bunny] Upload response:',
+      uploadResponse.status,
+      uploadResponse.statusText,
+    )
 
     if (!uploadResponse.ok) {
       const errorText = await uploadResponse.text()

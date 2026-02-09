@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import WaveSurfer from 'wavesurfer.js'
-import { Loader2, Pause, Play } from 'lucide-react'
+import { AlertCircle, Loader2, Pause, Play } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 
@@ -163,7 +163,14 @@ export function WaveformPlayer({
       if (err.name === 'AbortError') return
       if (err.message.toLowerCase().includes('abort')) return
       console.error('[WaveformPlayer] Error:', err)
-      setError('Failed to load audio')
+      // Detect expired/404 URLs for a more helpful message
+      const is404 =
+        err.message.includes('404') || err.message.includes('Not Found')
+      setError(
+        is404
+          ? 'Audio unavailable - file may have expired'
+          : 'Failed to load audio',
+      )
       setIsLoading(false)
     })
 
@@ -194,12 +201,13 @@ export function WaveformPlayer({
     return (
       <div
         className={cn(
-          'flex items-center justify-center text-sm text-muted-foreground',
+          'flex items-center justify-center gap-2 text-sm text-muted-foreground',
           className,
         )}
-        style={{ height }}
+        style={{ height: Math.max(height, 32) }}
       >
-        {error}
+        <AlertCircle className="h-3.5 w-3.5 shrink-0" />
+        <span>{error}</span>
       </div>
     )
   }

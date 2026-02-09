@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { AlertCircle, Loader2, Mic, User, Wand2 } from 'lucide-react'
+import { AlertCircle, Loader2, Mic, Wand2 } from 'lucide-react'
 import { toast } from 'sonner'
 import {
   Dialog,
@@ -27,29 +27,6 @@ interface VoiceConversionDialogProps {
   sourceTitle: string
 }
 
-// Amphion SVC singers grouped by category
-const SINGER_CATEGORIES = {
-  International: [
-    { id: 'Adele', name: 'Adele' },
-    { id: 'John Mayer', name: 'John Mayer' },
-    { id: 'Bruno Mars', name: 'Bruno Mars' },
-    { id: 'Beyonce', name: 'Beyonce' },
-    { id: 'Michael Jackson', name: 'Michael Jackson' },
-    { id: 'Taylor Swift', name: 'Taylor Swift' },
-  ],
-  Chinese: [
-    { id: 'David Tao', name: 'David Tao' },
-    { id: 'Eason Chan', name: 'Eason Chan' },
-    { id: 'Feng Wang', name: 'Feng Wang' },
-    { id: 'Jian Li', name: 'Jian Li' },
-    { id: 'Ying Na', name: 'Ying Na' },
-    { id: 'Yijie Shi', name: 'Yijie Shi' },
-    { id: 'Jacky Cheung', name: 'Jacky Cheung' },
-    { id: 'Faye Wong', name: 'Faye Wong' },
-    { id: 'Tsai Chin', name: 'Tsai Chin' },
-  ],
-}
-
 export function VoiceConversionDialog({
   open,
   onOpenChange,
@@ -59,10 +36,9 @@ export function VoiceConversionDialog({
   const queryClient = useQueryClient()
 
   // Form state
-  const [activeTab, setActiveTab] = useState<'preset' | 'custom' | 'my-voices'>(
-    'preset',
+  const [activeTab, setActiveTab] = useState<'custom' | 'my-voices'>(
+    'my-voices',
   )
-  const [selectedSinger, setSelectedSinger] = useState<string | null>(null)
   const [rvcModelUrl, setRvcModelUrl] = useState('')
   const [rvcModelName, setRvcModelName] = useState('')
   const [pitchShift, setPitchShift] = useState(0)
@@ -102,41 +78,27 @@ export function VoiceConversionDialog({
         })
       }
 
+      // Custom RVC tab
       const { startVoiceConversionFn } = await import('@/server/voice.fn')
 
-      if (activeTab === 'preset') {
-        if (!selectedSinger) {
-          throw new Error('Please select a singer')
-        }
-        return startVoiceConversionFn({
-          data: {
-            provider: 'amphion-svc',
-            sourceGenerationId,
-            targetSinger: selectedSinger,
-            pitchShift: pitchShift !== 0 ? pitchShift : undefined,
-          },
-        })
-      } else {
-        if (!rvcModelUrl) {
-          throw new Error('Please enter an RVC model URL')
-        }
-        return startVoiceConversionFn({
-          data: {
-            provider: 'rvc-v2',
-            sourceGenerationId,
-            rvcModelUrl,
-            rvcModelName: rvcModelName || undefined,
-            pitchShift: pitchShift !== 0 ? pitchShift : undefined,
-          },
-        })
+      if (!rvcModelUrl) {
+        throw new Error('Please enter an RVC model URL')
       }
+      return startVoiceConversionFn({
+        data: {
+          provider: 'rvc-v2',
+          sourceGenerationId,
+          rvcModelUrl,
+          rvcModelName: rvcModelName || undefined,
+          pitchShift: pitchShift !== 0 ? pitchShift : undefined,
+        },
+      })
     },
     onSuccess: () => {
       toast.success('Voice conversion started!')
       queryClient.invalidateQueries({ queryKey: ['voice-conversions'] })
       onOpenChange(false)
       // Reset form
-      setSelectedSinger(null)
       setSelectedCloneId(null)
       setRvcModelUrl('')
       setRvcModelName('')
@@ -152,11 +114,7 @@ export function VoiceConversionDialog({
   }
 
   const isValid =
-    activeTab === 'preset'
-      ? !!selectedSinger
-      : activeTab === 'my-voices'
-        ? !!selectedCloneId
-        : !!rvcModelUrl.trim()
+    activeTab === 'my-voices' ? !!selectedCloneId : !!rvcModelUrl.trim()
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -173,16 +131,13 @@ export function VoiceConversionDialog({
 
         <Tabs
           value={activeTab}
-          onValueChange={(v) =>
-            setActiveTab(v as 'preset' | 'custom' | 'my-voices')
-          }
+          onValueChange={(v) => setActiveTab(v as 'custom' | 'my-voices')}
         >
-          <TabsList className="grid w-full grid-cols-3">
+          <TabsList className="grid w-full grid-cols-2">
             <TabsTrigger value="my-voices">
               <Mic className="h-3.5 w-3.5 mr-1" />
               My Voices
             </TabsTrigger>
-            <TabsTrigger value="preset">Preset Singers</TabsTrigger>
             <TabsTrigger value="custom">Custom RVC</TabsTrigger>
           </TabsList>
 
@@ -248,60 +203,6 @@ export function VoiceConversionDialog({
             )}
           </TabsContent>
 
-          <TabsContent value="preset" className="mt-4">
-            <div className="space-y-4">
-              {/* International Singers */}
-              <div>
-                <Label className="text-xs text-muted-foreground uppercase tracking-wider">
-                  International
-                </Label>
-                <div className="grid grid-cols-3 gap-2 mt-2">
-                  {SINGER_CATEGORIES.International.map((singer) => (
-                    <button
-                      key={singer.id}
-                      type="button"
-                      onClick={() => setSelectedSinger(singer.id)}
-                      className={cn(
-                        'flex items-center gap-2 p-2 rounded-lg border text-sm transition-all',
-                        selectedSinger === singer.id
-                          ? 'border-primary bg-primary/10 text-primary'
-                          : 'border-border hover:border-primary/50 hover:bg-muted/50',
-                      )}
-                    >
-                      <User className="h-4 w-4 shrink-0" />
-                      <span className="truncate">{singer.name}</span>
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Chinese Singers */}
-              <div>
-                <Label className="text-xs text-muted-foreground uppercase tracking-wider">
-                  Chinese
-                </Label>
-                <div className="grid grid-cols-3 gap-2 mt-2">
-                  {SINGER_CATEGORIES.Chinese.map((singer) => (
-                    <button
-                      key={singer.id}
-                      type="button"
-                      onClick={() => setSelectedSinger(singer.id)}
-                      className={cn(
-                        'flex items-center gap-2 p-2 rounded-lg border text-sm transition-all',
-                        selectedSinger === singer.id
-                          ? 'border-primary bg-primary/10 text-primary'
-                          : 'border-border hover:border-primary/50 hover:bg-muted/50',
-                      )}
-                    >
-                      <User className="h-4 w-4 shrink-0" />
-                      <span className="truncate">{singer.name}</span>
-                    </button>
-                  ))}
-                </div>
-              </div>
-            </div>
-          </TabsContent>
-
           <TabsContent value="custom" className="mt-4">
             <div className="space-y-4">
               <div className="space-y-2">
@@ -355,8 +256,7 @@ export function VoiceConversionDialog({
 
         {/* Cost estimate */}
         <p className="text-[11px] text-muted-foreground">
-          Estimated cost: ~$0.02-0.05 per conversion on Replicate (
-          {activeTab === 'preset' ? 'Amphion SVC' : 'RVC v2'})
+          Estimated cost: ~$0.02-0.05 per conversion on Replicate (RVC v2)
         </p>
 
         <DialogFooter>

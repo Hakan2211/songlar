@@ -307,7 +307,13 @@ export const saveBunnySettingsFn = createServerFn({ method: 'POST' })
     const { apiKey, storageZone, pullZone } = data
     const trimmedKey = apiKey.trim()
     const trimmedStorageZone = storageZone.trim()
-    const trimmedPullZone = pullZone.trim()
+    // Sanitize pull zone: strip protocol, .b-cdn.net suffix, trailing slashes
+    // Users often paste "songsai.b-cdn.net" or "https://songsai.b-cdn.net" instead of just "songsai"
+    const trimmedPullZone = pullZone
+      .trim()
+      .replace(/^https?:\/\//, '')
+      .replace(/\.b-cdn\.net\/?$/, '')
+      .replace(/\/$/, '')
 
     // Encrypt the key
     const encryptedKey = encrypt(trimmedKey)

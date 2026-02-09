@@ -2,7 +2,6 @@
  * Voice Conversion Service
  *
  * Integrates with Replicate for voice conversion using:
- * - Amphion SVC (lucataco/singing_voice_conversion) - preset professional singers
  * - RVC v2 (zsxkib/realistic-voice-cloning) - custom RVC models
  *
  * Supports mock mode for development without API keys.
@@ -17,10 +16,11 @@ import Replicate from 'replicate'
 const MOCK_VOICE_CONVERSION = process.env.MOCK_VOICE_CONVERSION === 'true'
 
 // Replicate model versions
-const REPLICATE_MODELS = {
-  'amphion-svc': 'lucataco/singing_voice_conversion',
-  'rvc-v2': 'zsxkib/realistic-voice-cloning',
-} as const
+// Note: Community models require the full version hash to use the
+// POST /v1/predictions endpoint. Using just the model name routes to
+// POST /v1/models/{owner}/{name}/predictions which only works for official models.
+const RVC_V2_MODEL_VERSION =
+  'zsxkib/realistic-voice-cloning:0a9c7c558af4c0f20667c1bd1260ce32a2879944a0b9e44e1398660c077b1550' as const
 
 // Mock audio URL for development
 const MOCK_CONVERTED_AUDIO_URL =
@@ -30,35 +30,7 @@ const MOCK_CONVERTED_AUDIO_URL =
 // Types
 // ============================================================================
 
-export type VoiceConversionProvider = 'amphion-svc' | 'rvc-v2'
-
-// All 15 preset singers from Amphion SVC
-export const AMPHION_SINGERS = [
-  // International
-  { id: 'Adele', name: 'Adele', category: 'International' },
-  { id: 'John Mayer', name: 'John Mayer', category: 'International' },
-  { id: 'Bruno Mars', name: 'Bruno Mars', category: 'International' },
-  { id: 'Beyonce', name: 'Beyonce', category: 'International' },
-  { id: 'Michael Jackson', name: 'Michael Jackson', category: 'International' },
-  { id: 'Taylor Swift', name: 'Taylor Swift', category: 'International' },
-  // Chinese
-  { id: 'David Tao', name: 'David Tao', category: 'Chinese' },
-  { id: 'Eason Chan', name: 'Eason Chan', category: 'Chinese' },
-  { id: 'Feng Wang', name: 'Feng Wang', category: 'Chinese' },
-  { id: 'Jian Li', name: 'Jian Li', category: 'Chinese' },
-  { id: 'Ying Na', name: 'Ying Na', category: 'Chinese' },
-  { id: 'Yijie Shi', name: 'Yijie Shi', category: 'Chinese' },
-  { id: 'Jacky Cheung', name: 'Jacky Cheung', category: 'Chinese' },
-  { id: 'Faye Wong', name: 'Faye Wong', category: 'Chinese' },
-  { id: 'Tsai Chin', name: 'Tsai Chin', category: 'Chinese' },
-] as const
-
-export type AmphionSingerName = (typeof AMPHION_SINGERS)[number]['id']
-
-export interface AmphionSVCInput {
-  sourceAudioUrl: string
-  targetSinger: AmphionSingerName
-}
+export type VoiceConversionProvider = 'rvc-v2'
 
 export interface RVCInput {
   sourceAudioUrl: string
@@ -89,15 +61,6 @@ export interface PredictionSubmitResult {
 
 function createMockPredictionId(): string {
   return `mock-pred-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`
-}
-
-async function mockSubmitAmphionSVC(
-  input: AmphionSVCInput,
-): Promise<PredictionSubmitResult> {
-  console.log('[MOCK] Amphion SVC conversion submitted:', input)
-  return {
-    predictionId: createMockPredictionId(),
-  }
 }
 
 async function mockSubmitRVC(input: RVCInput): Promise<PredictionSubmitResult> {
@@ -154,28 +117,6 @@ function createReplicateClient(apiKey: string): Replicate {
 }
 
 /**
- * Submit Amphion SVC conversion to Replicate
- */
-async function replicateSubmitAmphionSVC(
-  apiKey: string,
-  input: AmphionSVCInput,
-): Promise<PredictionSubmitResult> {
-  const replicate = createReplicateClient(apiKey)
-
-  const prediction = await replicate.predictions.create({
-    model: REPLICATE_MODELS['amphion-svc'],
-    input: {
-      audio: input.sourceAudioUrl,
-      singer: input.targetSinger,
-    },
-  })
-
-  return {
-    predictionId: prediction.id,
-  }
-}
-
-/**
  * Submit RVC v2 conversion to Replicate
  */
 async function replicateSubmitRVC(
@@ -212,7 +153,7 @@ async function replicateSubmitRVC(
   }
 
   const prediction = await replicate.predictions.create({
-    model: REPLICATE_MODELS['rvc-v2'],
+    version: RVC_V2_MODEL_VERSION,
     input: replicateInput,
   })
 
@@ -278,24 +219,6 @@ async function replicateCancelPrediction(
 // ============================================================================
 
 /**
- * Submit an Amphion SVC voice conversion request
- */
-export async function submitAmphionSVCConversion(
-  apiKey: string | null,
-  input: AmphionSVCInput,
-): Promise<PredictionSubmitResult> {
-  if (MOCK_VOICE_CONVERSION) {
-    return mockSubmitAmphionSVC(input)
-  }
-
-  if (!apiKey) {
-    throw new Error('Replicate API key is required for voice conversion')
-  }
-
-  return replicateSubmitAmphionSVC(apiKey, input)
-}
-
-/**
  * Submit an RVC v2 voice conversion request
  */
 export async function submitRVCConversion(
@@ -348,13 +271,6 @@ export async function cancelVoiceConversion(
   }
 
   return replicateCancelPrediction(apiKey, predictionId)
-}
-
-/**
- * Get all available Amphion SVC singers
- */
-export function getAmphionSingers() {
-  return AMPHION_SINGERS
 }
 
 /**

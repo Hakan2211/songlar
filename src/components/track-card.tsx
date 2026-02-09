@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import {
+  ChevronDown,
   Cloud,
   CloudOff,
   Download,
@@ -113,6 +114,7 @@ export function TrackCard({
   const [isRenameDialogOpen, setIsRenameDialogOpen] = useState(false)
   const [newTitle, setNewTitle] = useState(track.title || '')
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
+  const [showDetails, setShowDetails] = useState(false)
 
   const displayTitle =
     track.title || track.prompt.slice(0, 50) || 'Untitled Track'
@@ -289,6 +291,49 @@ export function TrackCard({
             compact
             threshold={0.1}
           />
+        )}
+
+        {/* Details Toggle & Content */}
+        {isCompleted && (track.prompt || track.lyrics) && (
+          <>
+            <button
+              type="button"
+              onClick={() => setShowDetails(!showDetails)}
+              className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors py-0.5"
+            >
+              <ChevronDown
+                className={cn(
+                  'h-3 w-3 transition-transform duration-200',
+                  showDetails && 'rotate-180',
+                )}
+              />
+              {showDetails ? 'Hide details' : 'Show details'}
+            </button>
+            {showDetails && (
+              <div className="space-y-2 text-xs border-t pt-2">
+                {track.prompt && (
+                  <div>
+                    <span className="font-medium text-muted-foreground uppercase tracking-wider text-[10px]">
+                      Style
+                    </span>
+                    <p className="mt-0.5 text-foreground/80 leading-relaxed">
+                      {track.prompt}
+                    </p>
+                  </div>
+                )}
+                {track.lyrics && (
+                  <div>
+                    <span className="font-medium text-muted-foreground uppercase tracking-wider text-[10px]">
+                      Lyrics
+                    </span>
+                    <p className="mt-0.5 text-foreground/80 whitespace-pre-line leading-relaxed max-h-40 overflow-y-auto">
+                      {track.lyrics}
+                    </p>
+                  </div>
+                )}
+              </div>
+            )}
+          </>
         )}
 
         {/* Status for non-completed tracks */}

@@ -17,8 +17,6 @@ import {
 } from './services/voice-clone.service'
 import {
   checkVoiceConversionStatus,
-  getAmphionSingers,
-  submitAmphionSVCConversion,
   submitRVCConversion,
 } from './services/voice-conversion.service'
 import {
@@ -32,7 +30,7 @@ import {
   deleteAudioFromBunny,
 } from './services/bunny.service'
 import type { VoiceCloneProvider } from './services/voice-clone.service'
-import type { AmphionSingerName } from './services/voice-conversion.service'
+
 import type { BunnySettings } from './services/bunny.service'
 import { prisma } from '@/db'
 
@@ -62,10 +60,8 @@ const deleteVoiceCloneSchema = z.object({
 })
 
 const startVoiceConversionSchema = z.object({
-  provider: z.enum(['amphion-svc', 'rvc-v2']),
+  provider: z.enum(['rvc-v2']),
   sourceGenerationId: z.string(),
-  // Amphion SVC
-  targetSinger: z.string().optional(),
   // RVC v2
   rvcModelUrl: z.string().url().optional(),
   rvcModelName: z.string().max(100).optional(),
@@ -732,6 +728,14 @@ export const startConversionWithCloneFn = createServerFn({ method: 'POST' })
       throw new Error('Source track not found or not completed')
     }
 
+    // Require Bunny CDN to prevent audio loss (Replicate URLs expire in ~1 hour)
+    const bunnySettings = await getUserBunnySettings(context.user.id)
+    if (!bunnySettings) {
+      throw new Error(
+        'Bunny CDN settings are required for voice conversions. Configure CDN in Settings to prevent audio loss from expiring URLs.',
+      )
+    }
+
     const replicateApiKey = await getUserReplicateApiKey(context.user.id)
 
     // Submit to RVC v2 with the clone's trained model
@@ -802,16 +806,7 @@ export const listCompletedGenerationsFn = createServerFn({ method: 'GET' })
 // ============================================================================
 
 /**
- * Get available preset singers for Amphion SVC
- */
-export const getPresetSingersFn = createServerFn({ method: 'GET' }).handler(
-  async () => {
-    return getAmphionSingers()
-  },
-)
-
-/**
- * Start a voice conversion
+ * Start a voice conversion (RVC v2 with custom model URL)
  */
 export const startVoiceConversionFn = createServerFn({ method: 'POST' })
   .middleware([authMiddleware])
@@ -830,39 +825,31 @@ export const startVoiceConversionFn = createServerFn({ method: 'POST' })
       throw new Error('Source track not found or not completed')
     }
 
-    const replicateApiKey = await getUserReplicateApiKey(context.user.id)
-
-    // Validate provider-specific requirements
-    if (data.provider === 'amphion-svc' && !data.targetSinger) {
-      throw new Error('Target singer is required for Amphion SVC')
+    // Require Bunny CDN to prevent audio loss (Replicate URLs expire in ~1 hour)
+    const bunnySettings = await getUserBunnySettings(context.user.id)
+    if (!bunnySettings) {
+      throw new Error(
+        'Bunny CDN settings are required for voice conversions. Configure CDN in Settings to prevent audio loss from expiring URLs.',
+      )
     }
 
-    if (data.provider === 'rvc-v2' && !data.rvcModelUrl) {
+    const replicateApiKey = await getUserReplicateApiKey(context.user.id)
+
+    if (!data.rvcModelUrl) {
       throw new Error('RVC model URL is required for RVC v2')
     }
 
-    // Submit to appropriate provider
-    let predictionId: string
-
-    if (data.provider === 'amphion-svc') {
-      const result = await submitAmphionSVCConversion(replicateApiKey, {
-        sourceAudioUrl: sourceGeneration.audioUrl,
-        targetSinger: data.targetSinger as AmphionSingerName,
-      })
-      predictionId = result.predictionId
-    } else {
-      const result = await submitRVCConversion(replicateApiKey, {
-        sourceAudioUrl: sourceGeneration.audioUrl,
-        rvcModelUrl: data.rvcModelUrl!,
-        pitchShift: data.pitchShift,
-      })
-      predictionId = result.predictionId
-    }
+    // Submit to Replicate
+    const result = await submitRVCConversion(replicateApiKey, {
+      sourceAudioUrl: sourceGeneration.audioUrl,
+      rvcModelUrl: data.rvcModelUrl,
+      pitchShift: data.pitchShift,
+    })
 
     // Generate title
     const title =
       data.title ||
-      `${sourceGeneration.title || 'Track'} - ${data.targetSinger || data.rvcModelName || 'Voice Conversion'}`
+      `${sourceGeneration.title || 'Track'} - ${data.rvcModelName || 'Voice Conversion'}`
 
     // Create database record
     const voiceConversion = await prisma.voiceConversion.create({
@@ -872,11 +859,10 @@ export const startVoiceConversionFn = createServerFn({ method: 'POST' })
         sourceAudioUrl: sourceGeneration.audioUrl,
         sourceType: 'generation',
         sourceGenerationId: data.sourceGenerationId,
-        targetSinger: data.targetSinger,
         rvcModelUrl: data.rvcModelUrl,
         rvcModelName: data.rvcModelName,
         pitchShift: data.pitchShift,
-        requestId: predictionId,
+        requestId: result.predictionId,
         status: 'processing',
         title,
       },
@@ -884,7 +870,7 @@ export const startVoiceConversionFn = createServerFn({ method: 'POST' })
 
     return {
       id: voiceConversion.id,
-      predictionId,
+      predictionId: result.predictionId,
       status: 'processing',
     }
   })
@@ -932,6 +918,13 @@ export const checkVoiceConversionStatusFn = createServerFn({ method: 'POST' })
 
     // Update database based on result
     if (result.status === 'succeeded') {
+      console.log('[VoiceConversion] Replicate succeeded:', {
+        conversionId: voiceConversion.id,
+        outputUrl: result.outputAudioUrl?.slice(0, 80),
+        outputUrlType: typeof result.outputAudioUrl,
+        hasBunnySettings: !!bunnySettings,
+      })
+
       // Optionally upload to Bunny CDN if configured
       let storedAudioUrl = result.outputAudioUrl
       let audioStored = false
@@ -947,11 +940,24 @@ export const checkVoiceConversionStatusFn = createServerFn({ method: 'POST' })
           if (uploadResult.success && uploadResult.cdnUrl) {
             storedAudioUrl = uploadResult.cdnUrl
             audioStored = true
+          } else {
+            console.error(
+              '[VoiceConversion] CDN upload failed:',
+              uploadResult.error,
+              '- audio will use temporary Replicate URL that expires in ~1 hour',
+            )
           }
         } catch (err) {
-          console.error('Failed to upload conversion to CDN:', err)
-          // Keep using Replicate URL
+          console.error(
+            '[VoiceConversion] CDN upload error:',
+            err instanceof Error ? err.message : err,
+            '- audio will use temporary Replicate URL that expires in ~1 hour',
+          )
         }
+      } else if (!bunnySettings) {
+        console.warn(
+          '[VoiceConversion] No Bunny CDN settings - audio will use temporary Replicate URL that expires in ~1 hour',
+        )
       }
 
       await prisma.voiceConversion.update({

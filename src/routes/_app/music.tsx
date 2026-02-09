@@ -6,6 +6,7 @@ import {
   AlertCircle,
   ChevronDown,
   ChevronUp,
+  Download,
   Heart,
   Key,
   ListMusic,
@@ -49,6 +50,8 @@ import {
   DrawerTrigger,
 } from '@/components/ui/drawer'
 import { TrackCard, TrackCardSkeleton } from '@/components/track-card'
+import { LazyWaveformPlayer } from '@/components/waveform-player'
+import { Badge } from '@/components/ui/badge'
 import { cn } from '@/lib/utils'
 
 export const Route = createFileRoute('/_app/music')({
@@ -57,9 +60,25 @@ export const Route = createFileRoute('/_app/music')({
 
 type MusicProvider = 'elevenlabs' | 'minimax-v2' | 'minimax-v2.5'
 
+interface ConversionSummary {
+  id: string
+  status: string
+  provider: string
+  outputAudioUrl: string | null
+  outputAudioStored: boolean
+  targetSinger: string | null
+  rvcModelName: string | null
+  pitchShift: number | null
+  title: string | null
+  error: string | null
+  progress: number
+  createdAt: string | Date
+}
+
 interface Generation extends Track {
   progress: number
   error: string | null
+  voiceConversions?: ConversionSummary[]
 }
 
 // Model configuration for dropdown
@@ -143,14 +162,17 @@ function MusicPage() {
   )
   const hasActiveConversions = activeConversions && activeConversions.length > 0
 
-  // Poll active conversions
+  // Poll active conversions (sequential to avoid race conditions during CDN upload)
   useEffect(() => {
     if (!hasActiveConversions) return
+
+    let cancelled = false
 
     const pollConversions = async () => {
       const { checkVoiceConversionStatusFn } = await import('@/server/voice.fn')
 
       for (const conv of activeConversions) {
+        if (cancelled) return
         try {
           const result = await checkVoiceConversionStatusFn({
             data: { conversionId: conv.id },
@@ -158,6 +180,7 @@ function MusicPage() {
 
           if (result.status === 'completed' || result.status === 'failed') {
             refetchConversions()
+            queryClient.invalidateQueries({ queryKey: ['generations'] })
             if (result.status === 'completed') {
               toast.success(
                 `Voice conversion "${conv.title || 'Untitled'}" complete!`,
@@ -170,11 +193,19 @@ function MusicPage() {
           console.error('Error polling conversion status:', error)
         }
       }
+
+      // Schedule next poll only after current one finishes
+      if (!cancelled) {
+        timeoutId = setTimeout(pollConversions, 3000)
+      }
     }
 
-    const interval = setInterval(pollConversions, 3000)
-    return () => clearInterval(interval)
-  }, [hasActiveConversions, activeConversions, refetchConversions])
+    let timeoutId = setTimeout(pollConversions, 3000)
+    return () => {
+      cancelled = true
+      clearTimeout(timeoutId)
+    }
+  }, [hasActiveConversions, activeConversions, refetchConversions, queryClient])
 
   // Fetch API key status
   const { data: apiKeyStatuses } = useQuery({
@@ -197,15 +228,22 @@ function MusicPage() {
   // Check for Replicate API key
   const hasReplicateKey =
     apiKeyStatuses?.find((s) => s.provider === 'replicate')?.hasKey ?? false
+  const hasBunnySettings = bunnyStatus?.hasKey || false
 
   // Handle voice conversion
   const handleConvertVoice = useCallback(
     (trackId: string, trackTitle: string) => {
+      if (!hasBunnySettings) {
+        toast.error(
+          'Bunny CDN settings are required for voice conversions. Configure CDN in Settings to prevent audio loss.',
+        )
+        return
+      }
       setVoiceConversionTrackId(trackId)
       setVoiceConversionTrackTitle(trackTitle)
       setVoiceConversionOpen(true)
     },
-    [],
+    [hasBunnySettings],
   )
 
   // Check platform access (payment gate)
@@ -223,7 +261,6 @@ function MusicPage() {
   const hasMiniMaxKey = apiKeyStatuses?.find(
     (s) => s.provider === 'minimax',
   )?.hasKey
-  const hasBunnySettings = bunnyStatus?.hasKey || false
 
   // Check if user has the required key for the selected provider
   const hasRequiredKey = () => {
@@ -296,7 +333,7 @@ function MusicPage() {
   const virtualizer = useVirtualizer({
     count: generations?.length || 0,
     getScrollElement: () => trackListRef.current,
-    estimateSize: () => 112, // ~100px card + 12px bottom spacing
+    estimateSize: () => 140, // ~100px card + conversions + spacing
     overscan: 5,
   })
 
@@ -1018,6 +1055,121 @@ Singing our favorite song`}
                         hasBunnySettings={hasBunnySettings}
                         hasReplicateKey={hasReplicateKey}
                       />
+
+                      {/* Nested Voice Conversions */}
+                      {track.voiceConversions &&
+                        track.voiceConversions.length > 0 && (
+                          <div className="mt-2 ml-4 space-y-2">
+                            {track.voiceConversions.map((conversion) => {
+                              const isCompleted =
+                                conversion.status === 'completed'
+                              const isProcessing =
+                                conversion.status === 'processing'
+                              const isFailed = conversion.status === 'failed'
+                              const voiceName =
+                                conversion.rvcModelName ||
+                                conversion.targetSinger ||
+                                'Custom Voice'
+
+                              return (
+                                <div
+                                  key={conversion.id}
+                                  className="rounded-xl border bg-card p-3 space-y-2"
+                                >
+                                  {/* Header row */}
+                                  <div className="flex items-center justify-between gap-2">
+                                    <div className="flex items-center gap-2 min-w-0">
+                                      <Mic className="h-3.5 w-3.5 text-violet-500 shrink-0" />
+                                      <span className="text-sm font-medium truncate">
+                                        {voiceName}
+                                      </span>
+                                      {conversion.pitchShift !== null &&
+                                        conversion.pitchShift !== 0 && (
+                                          <span className="text-[10px] text-muted-foreground tabular-nums shrink-0">
+                                            {conversion.pitchShift > 0
+                                              ? `+${conversion.pitchShift}`
+                                              : conversion.pitchShift}
+                                            st
+                                          </span>
+                                        )}
+                                    </div>
+                                    <div className="flex items-center gap-2 shrink-0">
+                                      <Badge
+                                        variant={
+                                          isCompleted
+                                            ? 'default'
+                                            : isFailed
+                                              ? 'destructive'
+                                              : 'secondary'
+                                        }
+                                        className="text-[10px] px-1.5 py-0"
+                                      >
+                                        {conversion.status}
+                                      </Badge>
+                                      {isCompleted &&
+                                        conversion.outputAudioUrl && (
+                                          <Button
+                                            variant="ghost"
+                                            size="icon-sm"
+                                            className="h-7 w-7"
+                                            onClick={() => {
+                                              const link =
+                                                document.createElement('a')
+                                              link.href =
+                                                conversion.outputAudioUrl!
+                                              link.download = `${voiceName}.mp3`
+                                              link.target = '_blank'
+                                              document.body.appendChild(link)
+                                              link.click()
+                                              document.body.removeChild(link)
+                                            }}
+                                            title="Download conversion"
+                                          >
+                                            <Download className="h-3.5 w-3.5" />
+                                          </Button>
+                                        )}
+                                    </div>
+                                  </div>
+
+                                  {/* Audio Player */}
+                                  {isCompleted && conversion.outputAudioUrl && (
+                                    <LazyWaveformPlayer
+                                      src={conversion.outputAudioUrl}
+                                      height={32}
+                                      compact
+                                      threshold={0.1}
+                                    />
+                                  )}
+
+                                  {/* Processing indicator */}
+                                  {isProcessing && (
+                                    <div className="flex items-center gap-3">
+                                      <Loader2 className="h-3 w-3 animate-spin text-violet-500 shrink-0" />
+                                      <div className="relative h-1 flex-1 bg-muted rounded-full overflow-hidden">
+                                        <div
+                                          className="absolute inset-y-0 left-0 bg-violet-500/50 rounded-full transition-all"
+                                          style={{
+                                            width: `${conversion.progress}%`,
+                                          }}
+                                        />
+                                      </div>
+                                      <span className="text-xs text-muted-foreground tabular-nums">
+                                        {conversion.progress}%
+                                      </span>
+                                    </div>
+                                  )}
+
+                                  {/* Error */}
+                                  {isFailed && conversion.error && (
+                                    <div className="text-xs text-red-500 bg-red-500/10 p-2 rounded-lg">
+                                      {conversion.error}
+                                    </div>
+                                  )}
+                                </div>
+                              )
+                            })}
+                          </div>
+                        )}
                     </div>
                   )
                 })}

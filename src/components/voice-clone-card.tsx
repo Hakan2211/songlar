@@ -219,16 +219,21 @@ export function VoiceCloneCard({
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-48">
-                {/* Train for Singing - shown when clone is ready and no RVC model yet */}
-                {isReady && !voiceClone.rvcModelStatus && onTrainRvc && (
-                  <DropdownMenuItem
-                    onClick={() => setIsTrainConfirmOpen(true)}
-                    disabled={isTraining}
-                  >
-                    <Dumbbell className="h-4 w-4" />
-                    Train for Singing
-                  </DropdownMenuItem>
-                )}
+                {/* Train for Singing - shown when clone is ready and no RVC model yet, or when training failed */}
+                {isReady &&
+                  (!voiceClone.rvcModelStatus ||
+                    voiceClone.rvcModelStatus === 'failed') &&
+                  onTrainRvc && (
+                    <DropdownMenuItem
+                      onClick={() => setIsTrainConfirmOpen(true)}
+                      disabled={isTraining}
+                    >
+                      <Dumbbell className="h-4 w-4" />
+                      {voiceClone.rvcModelStatus === 'failed'
+                        ? 'Retry Training'
+                        : 'Train for Singing'}
+                    </DropdownMenuItem>
+                  )}
                 {/* Convert Track - shown when RVC model is trained and ready */}
                 {isReady &&
                   voiceClone.rvcModelStatus === 'ready' &&

@@ -5,6 +5,7 @@ import {
   AlertCircle,
   CheckCircle2,
   Cloud,
+  Download,
   Globe,
   Key,
   Loader2,
@@ -240,14 +241,19 @@ function VoicePage() {
     setUploadedRecordingUrl(null)
   }
 
-  // Handle recording completion: upload the audio blob to get a URL
+  // Handle recording completion: convert to WAV and upload the audio blob to get a URL
   const handleRecordingComplete = useCallback(async (blob: Blob) => {
     setIsUploading(true)
     setUploadedRecordingUrl(null)
 
     try {
-      // Convert blob to base64
-      const arrayBuffer = await blob.arrayBuffer()
+      // Convert browser-recorded audio (WebM/Opus) to WAV format
+      // Required because voice clone APIs (e.g. MiniMax) only accept WAV/MP3
+      const { blobToWav } = await import('@/lib/audio')
+      const wavBlob = await blobToWav(blob, 44100)
+
+      // Convert WAV blob to base64
+      const arrayBuffer = await wavBlob.arrayBuffer()
       const base64 = btoa(
         new Uint8Array(arrayBuffer).reduce(
           (data, byte) => data + String.fromCharCode(byte),
@@ -259,8 +265,8 @@ function VoicePage() {
       const result = await uploadRecordedAudioFn({
         data: {
           audioBase64: base64,
-          filename: `recording-${Date.now()}.webm`,
-          contentType: blob.type || 'audio/webm',
+          filename: `recording-${Date.now()}.wav`,
+          contentType: 'audio/wav',
         },
       })
 
@@ -323,14 +329,17 @@ function VoicePage() {
     return () => clearInterval(pollInterval)
   }, [processingCloneIds, refetchClones])
 
-  // Poll processing conversions
+  // Poll processing conversions (sequential to avoid race conditions during CDN upload)
   useEffect(() => {
     if (processingConversionIds.size === 0) return
 
-    const pollInterval = setInterval(async () => {
+    let cancelled = false
+
+    const pollConversions = async () => {
       const { checkVoiceConversionStatusFn } = await import('@/server/voice.fn')
 
       for (const conversionId of processingConversionIds) {
+        if (cancelled) return
         try {
           const result = await checkVoiceConversionStatusFn({
             data: { conversionId },
@@ -354,9 +363,18 @@ function VoicePage() {
           console.error('Error polling conversion status:', err)
         }
       }
-    }, 3000)
 
-    return () => clearInterval(pollInterval)
+      // Schedule next poll only after current one finishes
+      if (!cancelled) {
+        timeoutId = setTimeout(pollConversions, 3000)
+      }
+    }
+
+    let timeoutId = setTimeout(pollConversions, 3000)
+    return () => {
+      cancelled = true
+      clearTimeout(timeoutId)
+    }
   }, [processingConversionIds, refetchConversions])
 
   // Track processing conversions
@@ -918,6 +936,25 @@ function ConversionCard({
 
           {/* Actions */}
           <div className="flex items-center gap-1 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
+            {isCompleted && conversion.outputAudioUrl && (
+              <Button
+                variant="ghost"
+                size="icon-sm"
+                className="h-8 w-8"
+                onClick={() => {
+                  const link = document.createElement('a')
+                  link.href = conversion.outputAudioUrl!
+                  link.download = `${displayTitle || 'conversion'}.mp3`
+                  link.target = '_blank'
+                  document.body.appendChild(link)
+                  link.click()
+                  document.body.removeChild(link)
+                }}
+                title="Download"
+              >
+                <Download className="h-4 w-4" />
+              </Button>
+            )}
             <Button
               variant="ghost"
               size="icon-sm"

@@ -339,7 +339,7 @@ export function AudioRecorder({
               <Square className="h-5 w-5 fill-current" />
             </Button>
             {/* Pulsing ring */}
-            <span className="absolute inset-0 rounded-full border-2 border-red-500 animate-ping opacity-30" />
+            <span className="absolute inset-0 rounded-full border-2 border-red-500 animate-ping opacity-30 pointer-events-none" />
           </div>
 
           {/* Timer */}
