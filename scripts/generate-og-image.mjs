@@ -27,8 +27,8 @@ const HEIGHT = 630
 // Colors (matching the app's dark theme with primary accent)
 const BG_COLOR_TOP = '#09090b' // zinc-950
 const BG_COLOR_BOTTOM = '#18181b' // zinc-900
-const PRIMARY = '#a78bfa' // violet-400 (primary brand color)
-const PRIMARY_DARK = '#7c3aed' // violet-600
+const PRIMARY = '#60a5fa' // blue-400 (primary brand color)
+const PRIMARY_DARK = '#2563eb' // blue-600
 const TEXT_WHITE = '#fafafa' // zinc-50
 const TEXT_MUTED = '#a1a1aa' // zinc-400
 
@@ -94,8 +94,8 @@ function drawBackground(ctx) {
     HEIGHT / 2 - 40,
     350,
   )
-  radial.addColorStop(0, 'rgba(167, 139, 250, 0.08)')
-  radial.addColorStop(1, 'rgba(167, 139, 250, 0)')
+  radial.addColorStop(0, 'rgba(96, 165, 250, 0.08)')
+  radial.addColorStop(1, 'rgba(96, 165, 250, 0)')
   ctx.fillStyle = radial
   ctx.fillRect(0, 0, WIDTH, HEIGHT)
 }
@@ -118,7 +118,7 @@ function drawLogo(ctx, cx, cy, size) {
   ctx.fill()
 
   // Shadow
-  ctx.shadowColor = 'rgba(167, 139, 250, 0.3)'
+  ctx.shadowColor = 'rgba(96, 165, 250, 0.3)'
   ctx.shadowBlur = 30
   ctx.fill()
   ctx.shadowColor = 'transparent'
@@ -196,8 +196,8 @@ async function main() {
   drawBackground(ctx)
 
   // 2. Decorative waveform bars (top-left and bottom-right, very subtle)
-  drawDecoWaveform(ctx, 200, 100, 20, 3, 40, 'rgba(167, 139, 250, 0.06)')
-  drawDecoWaveform(ctx, 1000, 530, 20, 3, 40, 'rgba(167, 139, 250, 0.06)')
+  drawDecoWaveform(ctx, 200, 100, 20, 3, 40, 'rgba(96, 165, 250, 0.06)')
+  drawDecoWaveform(ctx, 1000, 530, 20, 3, 40, 'rgba(96, 165, 250, 0.06)')
 
   // 3. Logo (centered, upper area)
   const centerX = WIDTH / 2
@@ -223,9 +223,9 @@ async function main() {
     WIDTH / 2 + 100,
     0,
   )
-  lineGrad.addColorStop(0, 'rgba(167, 139, 250, 0)')
-  lineGrad.addColorStop(0.5, 'rgba(167, 139, 250, 0.4)')
-  lineGrad.addColorStop(1, 'rgba(167, 139, 250, 0)')
+  lineGrad.addColorStop(0, 'rgba(96, 165, 250, 0)')
+  lineGrad.addColorStop(0.5, 'rgba(96, 165, 250, 0.4)')
+  lineGrad.addColorStop(1, 'rgba(96, 165, 250, 0)')
   ctx.fillStyle = lineGrad
   ctx.fillRect(WIDTH / 2 - 100, 430, 200, 2)
 
