@@ -16,14 +16,15 @@ echo "--> ENTRYPOINT: Ensuring data directory exists..."
 mkdir -p /app/prisma/data
 
 # Run database migrations on every startup (safe and idempotent)
+# Use prisma directly (env vars are injected by the container runtime, not .env.local)
 echo "--> ENTRYPOINT: Running database migrations (db:deploy)..."
-npm run db:deploy
+npx prisma migrate deploy
 
 # Check if the setup flag file exists
 if [ ! -f "$SETUP_COMPLETE_FLAG" ]; then
   # If the flag file does NOT exist, this is the first run
   echo "--> ENTRYPOINT: First time setup detected. Seeding the database..."
-  npm run db:seed
+  npx tsx prisma/seed.ts
   
   # Create the flag file to prevent this block from running again
   echo "--> ENTRYPOINT: Seeding complete. Creating .setup_complete flag."

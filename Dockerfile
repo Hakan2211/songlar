@@ -75,4 +75,4 @@ HEALTHCHECK --interval=30s --timeout=15s --start-period=60s --retries=5 \
 
 # Use entrypoint for migrations/seeding, then start the app
 ENTRYPOINT ["./entrypoint.sh"]
-CMD ["npm", "run", "start"]
+CMD ["node", ".output/server/index.mjs"]
