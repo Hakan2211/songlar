@@ -84,12 +84,18 @@ export function LandingFooter() {
         </div>
 
         {/* Bottom */}
-        <div className="mt-12 pt-8 border-t flex flex-col md:flex-row items-center justify-between gap-4">
+        <div className="mt-12 pt-8 border-t flex items-center justify-center">
           <p className="text-sm text-muted-foreground">
-            &copy; {new Date().getFullYear()} Songlar. All rights reserved.
-          </p>
-          <p className="text-sm text-muted-foreground">
-            Powered by ElevenLabs & MiniMax via fal.ai
+            &copy; {new Date().getFullYear()}{' '}
+            <a
+              href="https://hakanda.com"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="hover:text-foreground transition-colors"
+            >
+              hakanda.com
+            </a>
+            . All rights reserved.
           </p>
         </div>
       </div>

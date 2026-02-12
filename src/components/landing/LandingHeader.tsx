@@ -70,7 +70,7 @@ export function LandingHeader({ isLoggedIn = false }: LandingHeaderProps) {
 
           {/* Navigation */}
           <nav className="hidden md:flex items-center gap-8">
-            {['features', 'how-it-works', 'pricing', 'faq'].map((section) => (
+            {['features', 'how-it-works', 'pricing'].map((section) => (
               <button
                 key={section}
                 onClick={() => scrollToSection(section)}

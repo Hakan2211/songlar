@@ -46,7 +46,6 @@ export function CTASection({ isLoggedIn = false }: CTASectionProps) {
               <Link to="/music">
                 <Button
                   size="lg"
-                  variant="secondary"
                   className="min-w-[200px] h-12 text-base group"
                 >
                   Go to Studio
@@ -57,7 +56,6 @@ export function CTASection({ isLoggedIn = false }: CTASectionProps) {
               <Link to="/signup">
                 <Button
                   size="lg"
-                  variant="secondary"
                   className="min-w-[200px] h-12 text-base group"
                 >
                   Get Started Now
@@ -69,7 +67,7 @@ export function CTASection({ isLoggedIn = false }: CTASectionProps) {
               <Button
                 size="lg"
                 variant="outline"
-                className="min-w-[200px] h-12 text-base bg-transparent border-primary-foreground/30 text-primary-foreground hover:bg-primary-foreground/10"
+                className="min-w-[200px] h-12 text-base"
               >
                 View Pricing
               </Button>
