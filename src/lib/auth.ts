@@ -2,7 +2,10 @@ import { betterAuth } from 'better-auth'
 import { prismaAdapter } from 'better-auth/adapters/prisma'
 import { prisma } from '../db'
 
+const authBaseUrl = process.env.BETTER_AUTH_URL || 'http://localhost:3000'
+
 export const auth = betterAuth({
+  baseURL: authBaseUrl,
   database: prismaAdapter(prisma, {
     provider: 'sqlite',
   }),
@@ -51,7 +54,7 @@ export const auth = betterAuth({
       },
     },
   },
-  trustedOrigins: [process.env.BETTER_AUTH_URL || 'http://localhost:3000'],
+  trustedOrigins: [authBaseUrl],
 })
 
 export type Session = typeof auth.$Infer.Session
