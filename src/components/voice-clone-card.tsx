@@ -28,6 +28,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { cn } from '@/lib/utils'
 
 export interface VoiceClone {
@@ -272,6 +273,22 @@ export function VoiceCloneCard({
             </div>
             <span>Cloning...</span>
           </div>
+        )}
+
+        {/* Next Step: Train for Singing hint */}
+        {isReady && !voiceClone.rvcModelStatus && onTrainRvc && (
+          <Alert className="bg-blue-500/5 border-blue-500/20 py-2 px-3 [&>svg]:text-blue-600 dark:[&>svg]:text-blue-400">
+            <Dumbbell className="h-4 w-4" />
+            <AlertTitle className="text-xs font-medium text-blue-700 dark:text-blue-300">
+              Next step: Train for Singing
+            </AlertTitle>
+            <AlertDescription className="text-[11px] text-blue-600/80 dark:text-blue-400/80">
+              Click the{' '}
+              <MoreVertical className="inline h-3 w-3 align-text-bottom" /> menu
+              and select &quot;Train for Singing&quot; to use this voice on
+              music tracks.
+            </AlertDescription>
+          </Alert>
         )}
 
         {/* RVC Training Status */}
